@@ -1,6 +1,35 @@
+const LIMIT = 10
+const WINDOW_MS = 24 * 60 * 60 * 1000
+
+// In-memory store: ip -> { count, resetAt }
+// Resets across cold starts but acceptable for a soft rate limit.
+const ipStore = new Map()
+
+function getRateLimit(ip) {
+  const now = Date.now()
+  const entry = ipStore.get(ip)
+  if (!entry || now >= entry.resetAt) {
+    const next = { count: 0, resetAt: now + WINDOW_MS }
+    ipStore.set(ip, next)
+    return next
+  }
+  return entry
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+    req.socket?.remoteAddress ||
+    'unknown'
+
+  const entry = getRateLimit(ip)
+
+  if (entry.count >= LIMIT) {
+    return res.status(429).json({ error: 'rate_limit_exceeded', remaining: 0 })
   }
 
   const { messages, system } = req.body
@@ -27,7 +56,10 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: data.error?.message || 'API error' })
     }
 
-    res.status(200).json(data)
+    entry.count++
+    const remaining = LIMIT - entry.count
+
+    res.status(200).json({ ...data, remaining })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

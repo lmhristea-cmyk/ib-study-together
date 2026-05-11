@@ -120,6 +120,8 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
   const [attachment, setAttachment] = useState(null) // { file, mediaType, data, previewUrl }
   const [loading, setLoading] = useState(false)
   const [showUploadNudge, setShowUploadNudge] = useState(false)
+  const [remaining, setRemaining] = useState(10)
+  const [showLimitPopup, setShowLimitPopup] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const fileRef = useRef(null)
@@ -185,12 +187,18 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
         }),
       })
 
+      if (res.status === 429) {
+        setShowLimitPopup(true)
+        return
+      }
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error?.message || `API error ${res.status}`)
       }
 
       const data = await res.json()
+      if (data.remaining !== undefined) setRemaining(data.remaining)
       setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: data.content[0].text }])
       if (isTopicRequestRef.current) {
         setShowUploadNudge(true)
@@ -347,6 +355,24 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
         <button className={styles.sendBtn} onClick={send} disabled={!canSend}>↑</button>
       </div>
       <div className={styles.hint}>Press Enter to send · Shift+Enter for new line · Attach images or PDFs</div>
+      <div className={`${styles.remainingCounter} ${remaining <= 3 ? styles.remainingLow : ''}`}>
+        {remaining} message{remaining !== 1 ? 's' : ''} remaining today
+      </div>
+
+      {showLimitPopup && (
+        <div className={styles.limitOverlay}>
+          <div className={styles.limitModal}>
+            <h3 className={styles.limitTitle}>Daily limit reached</h3>
+            <p className={styles.limitBody}>
+              You've used your 10 free AI Tutor messages for today. Your limit resets every 24 hours — come back tomorrow to keep studying!
+            </p>
+            <p className={styles.limitBody}>
+              In the meantime, you can still use Group Chat, your Library, and browse the study rooms.
+            </p>
+            <button className={styles.limitClose} onClick={() => setShowLimitPopup(false)}>Got it</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
