@@ -99,8 +99,6 @@ export default function Room({ room, navigate }) {
   }, [])
 
   const online = users.filter(u => u.status !== 'offline')
-  const studying = users.filter(u => u.status === 'studying')
-  const onBreak = users.filter(u => u.status === 'on_break')
 
   return (
     <div className={styles.page}>
@@ -120,14 +118,7 @@ export default function Room({ room, navigate }) {
             </div>
           </div>
         </div>
-        <div className={styles.headerRight}>
-          <div className={styles.onlineBadge}>
-            <span className={styles.onlineDot} />
-            {online.length} online
-          </div>
-          <div className={styles.statChip}>{studying.length} studying</div>
-          <div className={styles.statChip}>{onBreak.length} on break</div>
-        </div>
+        <div className={styles.headerRight} />
       </div>
 
       {/* Layout */}
@@ -175,10 +166,6 @@ export default function Room({ room, navigate }) {
               <div className={styles.statItem}>
                 <span className={styles.statVal}>{users.reduce((a, u) => a + u.pomodoroCount, 0)}</span>
                 <span className={styles.statLab}>pomodoros</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statVal}>{online.length}</span>
-                <span className={styles.statLab}>online</span>
               </div>
             </div>
           </div>

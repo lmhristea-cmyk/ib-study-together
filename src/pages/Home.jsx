@@ -1,7 +1,5 @@
 import styles from './Home.module.css'
 
-const AVATAR_NAMES = ['Alex', 'Sara', 'Priya', 'James', 'Yuki']
-
 const FEATURES = [
   { title: 'Virtual Study Rooms', desc: 'Subject-specific rooms with a 10-person cap and lobby queue system. See who\'s studying right now.' },
   { title: 'Focus Music', desc: 'Play ambient Tibetan bowl sounds to stay calm and focused during your study session.' },
@@ -25,19 +23,9 @@ export default function Home({ navigate }) {
         <div className={styles.heroContent}>
           <div className={styles.heroPill}>Powered by Claude AI</div>
           <h1 className={styles.heroTitle}>
-            Join IB students<br />
-            <span className={styles.heroAccent}>studying right now.</span>
+            Your IB study space,<br />
+            <span className={styles.heroAccent}>all in one place.</span>
           </h1>
-          <div className={styles.heroUsers}>
-            <div className={styles.avatarStack}>
-              {AVATAR_NAMES.map((name, i) => (
-                <span key={i} className={styles.stackAvatar} style={{ zIndex: 5 - i }}>{name.charAt(0)}</span>
-              ))}
-            </div>
-            <span className={styles.heroUserText}>
-              <span className={styles.greenDot} /> <strong>248 students</strong> studying right now
-            </span>
-          </div>
           <p className={styles.heroSub}>
             The ultimate IB study platform. Join subject-specific study rooms, collaborate with IB students worldwide,
             and get AI-powered tutoring — all in one place.

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { STUDY_ROOMS } from '../data/subjects'
-import { getRoomUsers } from '../data/mockUsers'
 import styles from './Rooms.module.css'
 
 const SUBJECT_FILTERS = ['All', 'Languages', 'Humanities', 'Sciences', 'Maths', 'Computer Science', 'Core']
@@ -161,24 +160,17 @@ export default function Rooms({ navigate }) {
   )
 }
 
-const ROOM_CAPACITY = 6
-
 function RoomCard({ room, navigate, icon }) {
-  const users = getRoomUsers(room.id)
-  const studying = users.filter(u => u.status === 'studying').length
-  const isFull = users.length >= ROOM_CAPACITY
-
   const handleJoin = (e) => {
     e.stopPropagation()
-    navigate(isFull ? 'lobby' : 'room', room)
+    navigate('room', room)
   }
 
   return (
-    <div className={styles.card} onClick={() => navigate(isFull ? 'lobby' : 'room', room)}>
+    <div className={styles.card} onClick={() => navigate('room', room)}>
       <div className={styles.cardHeader}>
         <span className={styles.subjectIcon}>{icon}</span>
         <div className={styles.cardHeaderRight}>
-          {isFull && <span className={styles.fullBadge}>Full</span>}
           {!['extended_essay', 'tok', 'cas'].includes(room.id) && (
             <span className={`${styles.levelBadge} ${room.level === 'HL' ? styles.levelHL : styles.levelSL}`}>
               {room.level}
@@ -192,32 +184,9 @@ function RoomCard({ room, navigate, icon }) {
         <p className={styles.cardDesc}>{room.description}</p>
       </div>
 
-      <div className={styles.capacityRow}>
-        <div className={styles.capacityBar}>
-          <div
-            className={`${styles.capacityFill} ${isFull ? styles.capacityFull : ''}`}
-            style={{ width: `${Math.min(100, (users.length / ROOM_CAPACITY) * 100)}%` }}
-          />
-        </div>
-        <span className={styles.capacityText}>{users.length}/{ROOM_CAPACITY}</span>
-      </div>
-
       <div className={styles.cardFooter}>
-        <div className={styles.avatarRow}>
-          {users.slice(0, 4).map((u, i) => (
-            <span key={i} className={styles.miniAvatar} style={{ zIndex: 4 - i }}>
-              {u.name.charAt(0)}
-            </span>
-          ))}
-          {users.length > 4 && <span className={styles.moreUsers}>+{users.length - 4}</span>}
-          <span className={styles.studyingDot} />
-          <span className={styles.studyingText}>{studying} studying now</span>
-        </div>
-        <button
-          className={`${styles.joinBtn} ${isFull ? styles.joinWaitlist : ''}`}
-          onClick={handleJoin}
-        >
-          {isFull ? 'Join Waitlist' : 'Join Now'}
+        <button className={styles.joinBtn} onClick={handleJoin}>
+          Join Now
         </button>
       </div>
     </div>
