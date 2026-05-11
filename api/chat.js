@@ -1,4 +1,4 @@
-const LIMIT = 10
+const LIMIT = 2
 const WINDOW_MS = 24 * 60 * 60 * 1000
 
 // In-memory store: ip -> { count, resetAt }
