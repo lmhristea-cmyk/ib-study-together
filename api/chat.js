@@ -19,7 +19,7 @@ function getEntry(store, key, limit) {
 async function getAuthUser(token) {
   if (!token) return null
   try {
-    const res = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+    const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
         apikey: process.env.SUPABASE_ANON_KEY,
