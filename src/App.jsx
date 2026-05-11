@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Rooms from './pages/Rooms'
 import Room from './pages/Room'
 import LobbyScreen from './components/LobbyScreen'
+import { supabase } from './supabaseClient'
 
 export default function App() {
   const [page, setPage] = useState('home')
   const [currentRoom, setCurrentRoom] = useState(null)
   const [lobbyRoom, setLobbyRoom] = useState(null)
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
 
   const navigate = (to, data = null) => {
     if (to === 'room' && data) setCurrentRoom(data)
@@ -19,11 +27,11 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
-      <Navbar page={page} navigate={navigate} />
+      <Navbar page={page} navigate={navigate} session={session} onSignOut={() => supabase.auth.signOut()} />
       <main>
         {page === 'home' && <Home navigate={navigate} />}
         {page === 'rooms' && <Rooms navigate={navigate} />}
-        {page === 'room' && currentRoom && <Room room={currentRoom} navigate={navigate} />}
+        {page === 'room' && currentRoom && <Room room={currentRoom} navigate={navigate} session={session} />}
         {page === 'lobby' && lobbyRoom && <LobbyScreen room={lobbyRoom} navigate={navigate} />}
       </main>
     </div>

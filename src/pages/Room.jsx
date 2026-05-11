@@ -8,7 +8,7 @@ import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
 
-export default function Room({ room, navigate }) {
+export default function Room({ room, navigate, session }) {
   const [activeTab, setActiveTab] = useState('chat')
   const [rightPanel, setRightPanel] = useState('ai')
   const [activeTopic, setActiveTopic] = useState(null)
@@ -176,10 +176,11 @@ export default function Room({ room, navigate }) {
                   savedIds={savedIds}
                   topicPrompt={topicPrompt}
                   onTopicConsumed={handleTopicConsumed}
+                  session={session}
                 />
               </div>
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
-                <GroupChat roomId={room.id} />
+                <GroupChat roomId={room.id} session={session} />
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} />

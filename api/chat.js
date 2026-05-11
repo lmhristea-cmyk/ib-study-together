@@ -1,19 +1,36 @@
-const LIMIT = 10
-const WINDOW_MS = 24 * 60 * 60 * 1000
+const LIMIT_GUEST = 10
+const LIMIT_AUTH  = 25
+const WINDOW_MS   = 24 * 60 * 60 * 1000
 
-// In-memory store: ip -> { count, resetAt }
-// Resets across cold starts but acceptable for a soft rate limit.
-const ipStore = new Map()
+const ipStore   = new Map() // guest: ip  -> { count, resetAt }
+const userStore = new Map() // auth:  uid -> { count, resetAt }
 
-function getRateLimit(ip) {
+function getEntry(store, key, limit) {
   const now = Date.now()
-  const entry = ipStore.get(ip)
+  const entry = store.get(key)
   if (!entry || now >= entry.resetAt) {
     const next = { count: 0, resetAt: now + WINDOW_MS }
-    ipStore.set(ip, next)
-    return next
+    store.set(key, next)
+    return { entry: next, limit }
   }
-  return entry
+  return { entry, limit }
+}
+
+async function getAuthUser(token) {
+  if (!token) return null
+  try {
+    const res = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: process.env.SUPABASE_ANON_KEY,
+      },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.id || null
+  } catch {
+    return null
+  }
 }
 
 export default async function handler(req, res) {
@@ -28,9 +45,15 @@ export default async function handler(req, res) {
 
   const isAdmin = process.env.ADMIN_IP && ip === process.env.ADMIN_IP
 
-  const entry = getRateLimit(ip)
+  // Resolve identity — prefer authenticated user, fall back to IP
+  const token = req.headers['authorization']?.replace('Bearer ', '') || null
+  const userId = await getAuthUser(token)
 
-  if (!isAdmin && entry.count >= LIMIT) {
+  const { entry, limit } = userId
+    ? getEntry(userStore, userId, LIMIT_AUTH)
+    : getEntry(ipStore, ip, LIMIT_GUEST)
+
+  if (!isAdmin && entry.count >= limit) {
     return res.status(429).json({ error: 'rate_limit_exceeded', remaining: 0 })
   }
 
@@ -59,7 +82,7 @@ export default async function handler(req, res) {
     }
 
     entry.count++
-    const remaining = LIMIT - entry.count
+    const remaining = limit - entry.count
 
     res.status(200).json({ ...data, remaining })
   } catch (err) {

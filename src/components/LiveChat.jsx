@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import styles from './LiveChat.module.css'
+import AuthModal from './AuthModal'
 
 const CAS_SYSTEM_PROMPT = `You are a CAS Advisor for IB Diploma Programme students. CAS (Creativity, Activity, Service) is an experiential learning component — there are no exams, but students must complete 18 months of meaningful engagement and maintain a reflective portfolio.
 
@@ -108,7 +109,7 @@ function BookmarkIcon({ filled }) {
     : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
 }
 
-export default function LiveChat({ subject, subjectColor, onSave, savedIds = new Set(), topicPrompt = null, onTopicConsumed }) {
+export default function LiveChat({ subject, subjectColor, onSave, savedIds = new Set(), topicPrompt = null, onTopicConsumed, session }) {
   const [messages, setMessages] = useState([
     {
       id: 0,
@@ -120,8 +121,9 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
   const [attachment, setAttachment] = useState(null) // { file, mediaType, data, previewUrl }
   const [loading, setLoading] = useState(false)
   const [showUploadNudge, setShowUploadNudge] = useState(false)
-  const [remaining, setRemaining] = useState(10)
+  const [remaining, setRemaining] = useState(session ? 25 : 10)
   const [showLimitPopup, setShowLimitPopup] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const fileRef = useRef(null)
@@ -131,6 +133,10 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    setRemaining(session ? 25 : 10)
+  }, [session])
 
   useEffect(() => {
     if (!topicPrompt) return
@@ -176,11 +182,12 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
         content: m.attachment ? buildApiContent(m.content, m.attachment) : m.content,
       }))
 
+      const headers = { 'content-type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           system: getSystemPrompt(subject),
           messages: apiMessages,
@@ -188,7 +195,11 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
       })
 
       if (res.status === 429) {
-        setShowLimitPopup(true)
+        if (session) {
+          setShowLimitPopup(true)
+        } else {
+          setShowAuthModal(true)
+        }
         return
       }
 
@@ -364,7 +375,7 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
           <div className={styles.limitModal}>
             <h3 className={styles.limitTitle}>Daily limit reached</h3>
             <p className={styles.limitBody}>
-              You've used your 10 free AI Tutor messages for today. Your limit resets every 24 hours — come back tomorrow to keep studying!
+              You've used your {session ? 25 : 10} AI Tutor messages for today. Your limit resets every 24 hours — come back tomorrow to keep studying!
             </p>
             <p className={styles.limitBody}>
               In the meantime, you can still use Group Chat, your Library, and browse the study rooms.
@@ -372,6 +383,13 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
             <button className={styles.limitClose} onClick={() => setShowLimitPopup(false)}>Got it</button>
           </div>
         </div>
+      )}
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onAuth={() => setShowAuthModal(false)}
+        />
       )}
     </div>
   )

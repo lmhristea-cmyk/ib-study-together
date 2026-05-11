@@ -1,6 +1,6 @@
 import styles from './Navbar.module.css'
 
-export default function Navbar({ page, navigate }) {
+export default function Navbar({ page, navigate, session, onSignOut }) {
   return (
     <nav className={styles.nav}>
       <div className={styles.inner}>
@@ -15,6 +15,14 @@ export default function Navbar({ page, navigate }) {
           >
             Study Rooms
           </button>
+        </div>
+        <div className={styles.authArea}>
+          {session ? (
+            <>
+              <span className={styles.userEmail}>{session.user.email}</span>
+              <button className={styles.signOutBtn} onClick={onSignOut}>Sign out</button>
+            </>
+          ) : null}
         </div>
       </div>
     </nav>

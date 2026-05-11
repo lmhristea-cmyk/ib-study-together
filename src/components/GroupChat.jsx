@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
 import styles from './GroupChat.module.css'
 
 function formatTime(date) {
-  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function TrashIcon() {
@@ -21,67 +22,83 @@ function PaperclipIcon() {
   )
 }
 
-function Attachment({ attachment }) {
-  if (!attachment) return null
-  if (attachment.previewUrl) {
-    return (
-      <a href={attachment.objectUrl} target="_blank" rel="noreferrer" className={styles.attachLink}>
-        <img src={attachment.previewUrl} className={styles.attachThumb} alt="uploaded" />
-      </a>
-    )
-  }
-  return (
-    <a href={attachment.objectUrl} target="_blank" rel="noreferrer" className={styles.attachLink}>
-      <div className={styles.pdfChip}><PaperclipIcon /> {attachment.name}</div>
-    </a>
-  )
-}
-
-export default function GroupChat({ roomId }) {
+export default function GroupChat({ roomId, session }) {
   const [messages, setMessages] = useState([])
-
   const [input, setInput] = useState('')
-  const [attachment, setAttachment] = useState(null)
+  const [loading, setLoading] = useState(true)
   const bottomRef = useRef(null)
   const fileRef = useRef(null)
+
+  const userName = session?.user?.email?.split('@')[0] || 'Guest'
+
+  useEffect(() => {
+    // Load recent messages
+    supabase
+      .from('group_messages')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: true })
+      .limit(100)
+      .then(({ data }) => {
+        if (data) setMessages(data)
+        setLoading(false)
+      })
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`group_chat:${roomId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `room_id=eq.${roomId}` },
+        (payload) => {
+          setMessages(prev => {
+            // avoid duplicates (optimistic insert already added it)
+            if (prev.find(m => m.id === payload.new.id)) return prev
+            return [...prev, payload.new]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [roomId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleFile = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    const mediaType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg')
-    const objectUrl = URL.createObjectURL(file)
-    const previewUrl = mediaType !== 'application/pdf' ? objectUrl : null
-    setAttachment({ name: file.name, mediaType, previewUrl, objectUrl })
-  }
-
-  const clearAttachment = () => setAttachment(null)
-
-  const deleteMsg = (id) => setMessages(prev => prev.filter(m => m.id !== id))
-
-  const send = () => {
+  const send = async () => {
     const text = input.trim()
-    if (!text && !attachment) return
-    const att = attachment
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      user: { name: 'You', id: 'me' },
-      text,
-      attachment: att,
-      time: new Date(),
-      isOwn: true,
-    }])
+    if (!text) return
     setInput('')
-    setAttachment(null)
+
+    const optimistic = {
+      id: `opt-${Date.now()}`,
+      room_id: roomId,
+      user_name: userName,
+      text,
+      created_at: new Date().toISOString(),
+      isOwn: true,
+    }
+    setMessages(prev => [...prev, optimistic])
+
+    const { data, error } = await supabase
+      .from('group_messages')
+      .insert({ room_id: roomId, user_name: userName, text })
+      .select()
+      .single()
+
+    if (!error && data) {
+      // Replace optimistic entry with real one
+      setMessages(prev => prev.map(m => m.id === optimistic.id ? { ...data, isOwn: true } : m))
+    }
   }
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
+
+  const deleteMsg = (id) => setMessages(prev => prev.filter(m => m.id !== id))
 
   return (
     <div className={styles.wrap}>
@@ -93,44 +110,41 @@ export default function GroupChat({ roomId }) {
         <span>Save energy. Save answers. Share notes. Learn from each other.</span>
       </div>
       <div className={styles.messages}>
-        {messages.map(msg => (
-          <div key={msg.id} className={`${styles.row} ${msg.isOwn ? styles.own : ''}`}>
-            {!msg.isOwn && (
-              <span className={styles.avatar}>{msg.user.name.charAt(0)}</span>
-            )}
-            <div className={styles.content}>
-              {!msg.isOwn && (
-                <div className={styles.meta}>
-                  <span className={styles.name}>{msg.user.name}</span>
-                  <span className={styles.time}>{formatTime(msg.time)}</span>
-                </div>
+        {loading && <p className={styles.loadingText}>Loading messages…</p>}
+        {!loading && messages.length === 0 && (
+          <p className={styles.emptyText}>No messages yet. Say hello!</p>
+        )}
+        {messages.map(msg => {
+          const isOwn = msg.isOwn || msg.user_name === userName
+          return (
+            <div key={msg.id} className={`${styles.row} ${isOwn ? styles.own : ''}`}>
+              {!isOwn && (
+                <span className={styles.avatar}>{msg.user_name.charAt(0).toUpperCase()}</span>
               )}
-              {msg.attachment && <Attachment attachment={msg.attachment} />}
-              {msg.text && (
-                <div className={`${styles.bubble} ${msg.isOwn ? styles.bubbleOwn : styles.bubbleOther}`}>
+              <div className={styles.content}>
+                {!isOwn && (
+                  <div className={styles.meta}>
+                    <span className={styles.name}>{msg.user_name}</span>
+                    <span className={styles.time}>{formatTime(msg.created_at)}</span>
+                  </div>
+                )}
+                <div className={`${styles.bubble} ${isOwn ? styles.bubbleOwn : styles.bubbleOther}`}>
                   {msg.text}
                 </div>
-              )}
-              {msg.isOwn && (
-                <div className={styles.ownMeta}>
-                  <span className={styles.ownTime}>{formatTime(msg.time)}</span>
-                  <button className={styles.deleteBtn} onClick={() => deleteMsg(msg.id)} title="Delete message">
-                    <TrashIcon />
-                  </button>
-                </div>
-              )}
+                {isOwn && (
+                  <div className={styles.ownMeta}>
+                    <span className={styles.ownTime}>{formatTime(msg.created_at)}</span>
+                    <button className={styles.deleteBtn} onClick={() => deleteMsg(msg.id)} title="Delete message">
+                      <TrashIcon />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
-
-      {attachment && (
-        <div className={styles.attachPreview}>
-          <Attachment attachment={attachment} />
-          <button className={styles.removeBtn} onClick={clearAttachment} title="Remove">×</button>
-        </div>
-      )}
 
       <div className={styles.inputRow}>
         <input
@@ -138,7 +152,7 @@ export default function GroupChat({ roomId }) {
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
           className={styles.fileInput}
-          onChange={handleFile}
+          onChange={() => {}}
         />
         <button
           className={styles.attachBtn}
@@ -153,15 +167,18 @@ export default function GroupChat({ roomId }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
-          placeholder={attachment ? 'Add a message (optional)...' : 'Message the room...'}
+          placeholder={session ? 'Message the room…' : 'Sign in to chat…'}
+          disabled={!session}
         />
         <button
           className={styles.sendBtn}
           onClick={send}
-          disabled={!input.trim() && !attachment}
+          disabled={!input.trim() || !session}
         >↑</button>
       </div>
-      <div className={styles.hint}>Press Enter to send · Attach images or PDFs</div>
+      <div className={styles.hint}>
+        {session ? 'Press Enter to send' : 'Sign in to send messages in Group Chat'}
+      </div>
     </div>
   )
 }
