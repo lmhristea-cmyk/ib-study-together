@@ -3,27 +3,16 @@ import tibetanBowl from '../assets/tibetan-bowl.mp3.mp3'
 import PomodoroTimer from '../components/PomodoroTimer'
 import LiveChat from '../components/LiveChat'
 import GroupChat from '../components/GroupChat'
-import DirectMessage from '../components/DirectMessage'
 import Library from '../components/Library'
-import UserCard from '../components/UserCard'
-import { getRoomUsers } from '../data/mockUsers'
 import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
 
 export default function Room({ room, navigate }) {
-  const [users] = useState(() => getRoomUsers(room.id))
   const [activeTab, setActiveTab] = useState('chat')
   const [rightPanel, setRightPanel] = useState('ai')
   const [activeTopic, setActiveTopic] = useState(null)
   const [topicPrompt, setTopicPrompt] = useState(null)
-  const [dmUser, setDmUser] = useState(null)
-  const [dmHistory, setDmHistory] = useState({})
-  const [unread, setUnread] = useState(() => {
-    // seed one user as having an unread message to demo the feature
-    const u = getRoomUsers(room.id).find(u => u.status === 'studying')
-    return u ? { [u.id]: true } : {}
-  })
 
   const handleTopicClick = (topic) => {
     setActiveTopic(topic)
@@ -32,17 +21,6 @@ export default function Room({ room, navigate }) {
   }
 
   const handleTopicConsumed = () => setTopicPrompt(null)
-
-  const openDm = (user) => {
-    setDmUser(user)
-    setDmHistory(prev => prev[user.id] ? prev : { ...prev, [user.id]: user })
-  }
-
-  const closeDm = () => setDmUser(null)
-
-  const markRead = useCallback((userId) => {
-    setUnread(prev => { const n = { ...prev }; delete n[userId]; return n })
-  }, [])
 
   const [library, setLibrary] = useState(() => {
     try { return JSON.parse(localStorage.getItem(libraryKey(room.id)) || '[]') } catch { return [] }
@@ -98,8 +76,6 @@ export default function Room({ room, navigate }) {
     setLibrary(prev => [item, ...prev])
   }, [])
 
-  const online = users.filter(u => u.status !== 'offline')
-
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -132,16 +108,7 @@ export default function Room({ room, navigate }) {
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
             <div className={styles.sideLabel}>In this room</div>
-            <div className={styles.userList}>
-              {online.map(user => (
-                <UserCard
-                  key={user.id}
-                  user={user}
-                  onClick={() => openDm(user)}
-                  unread={!!unread[user.id]}
-                />
-              ))}
-            </div>
+            <p className={styles.emptyPresence}>No one else is here yet — share the link to study together!</p>
           </div>
 
           <div className={styles.sideCard}>
@@ -160,15 +127,6 @@ export default function Room({ room, navigate }) {
             </div>
           </div>
 
-          <div className={styles.sideCard}>
-            <div className={styles.sideLabel}>Room stats</div>
-            <div className={styles.statsRow}>
-              <div className={styles.statItem}>
-                <span className={styles.statVal}>{users.reduce((a, u) => a + u.pomodoroCount, 0)}</span>
-                <span className={styles.statLab}>pomodoros</span>
-              </div>
-            </div>
-          </div>
         </aside>
 
         {/* Center: empty fill + mobile tabs */}
@@ -180,26 +138,12 @@ export default function Room({ room, navigate }) {
             >
               {room.subject === 'CAS' ? 'CAS Advisor' : 'AI Tutor'}
             </button>
-            <button
-              className={`${styles.mobileTab} ${activeTab === 'users' ? styles.mobileTabActive : ''}`}
-              onClick={() => setActiveTab('users')}
-            >
-              People ({online.length})
-            </button>
           </div>
         </main>
 
-        {/* Right: always-mounted panels, CSS show/hide between DM and tabs */}
+        {/* Right: panels */}
         <aside className={styles.chatPanel}>
-          {/* One DirectMessage per user ever opened — never unmounts */}
-          {Object.values(dmHistory).map(u => (
-            <div key={u.id} className={dmUser?.id === u.id ? styles.panelSlot : styles.panelHidden}>
-              <DirectMessage user={u} onBack={closeDm} markRead={markRead} />
-            </div>
-          ))}
-
-          {/* Tabs panel — always mounted, hidden while a DM is active */}
-          <div className={dmUser ? styles.panelHidden : styles.panelSlot}>
+          <div className={styles.panelSlot}>
             <div className={styles.panelTabs}>
               <button
                 className={`${styles.panelTab} ${rightPanel === 'ai' ? styles.panelTabActive : ''}`}
@@ -235,7 +179,7 @@ export default function Room({ room, navigate }) {
                 />
               </div>
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
-                <GroupChat users={users} roomId={room.id} />
+                <GroupChat roomId={room.id} />
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} />
@@ -253,13 +197,6 @@ export default function Room({ room, navigate }) {
           </div>
         </aside>
       </div>
-
-      {activeTab === 'users' && (
-        <div className={`${styles.mobilePanel} card`}>
-          <div className="label" style={{ marginBottom: 12 }}>In this room</div>
-          {online.map(user => <UserCard key={user.id} user={user} />)}
-        </div>
-      )}
 
       {/* Tibetan bowl ambient sound */}
       <div className={styles.soundWidget}>
