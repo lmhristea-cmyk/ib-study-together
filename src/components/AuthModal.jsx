@@ -18,7 +18,10 @@ export default function AuthModal({ onClose, onAuth }) {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        setDone(true)
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw signInError
+        onAuth(data.session)
+        onClose()
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
