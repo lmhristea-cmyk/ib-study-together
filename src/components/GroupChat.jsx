@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import AuthModal from './AuthModal'
 import styles from './GroupChat.module.css'
 
 function formatTime(date) {
@@ -26,6 +27,7 @@ export default function GroupChat({ roomId, session }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const bottomRef = useRef(null)
   const fileRef = useRef(null)
 
@@ -146,39 +148,48 @@ export default function GroupChat({ roomId, session }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className={styles.inputRow}>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-          className={styles.fileInput}
-          onChange={() => {}}
+      {session ? (
+        <div className={styles.inputRow}>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+            className={styles.fileInput}
+            onChange={() => {}}
+          />
+          <button
+            className={styles.attachBtn}
+            onClick={() => fileRef.current?.click()}
+            title="Attach image or PDF"
+            type="button"
+          >
+            <PaperclipIcon />
+          </button>
+          <input
+            className={styles.input}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Message the room…"
+          />
+          <button className={styles.sendBtn} onClick={send} disabled={!input.trim()}>↑</button>
+        </div>
+      ) : (
+        <div className={styles.signInPrompt}>
+          <p className={styles.signInText}>Sign in to chat with others in this room</p>
+          <button className={styles.signInBtn} onClick={() => setShowAuthModal(true)}>
+            Sign in / Sign up
+          </button>
+        </div>
+      )}
+      {session && <div className={styles.hint}>Press Enter to send</div>}
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onAuth={() => setShowAuthModal(false)}
         />
-        <button
-          className={styles.attachBtn}
-          onClick={() => fileRef.current?.click()}
-          title="Attach image or PDF"
-          type="button"
-        >
-          <PaperclipIcon />
-        </button>
-        <input
-          className={styles.input}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder={session ? 'Message the room…' : 'Sign in to chat…'}
-          disabled={!session}
-        />
-        <button
-          className={styles.sendBtn}
-          onClick={send}
-          disabled={!input.trim() || !session}
-        >↑</button>
-      </div>
-      <div className={styles.hint}>
-        {session ? 'Press Enter to send' : 'Sign in to send messages in Group Chat'}
-      </div>
+      )}
     </div>
   )
 }
