@@ -1,22 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import styles from './GroupChat.module.css'
 
-const SAMPLE_MESSAGES = [
-  { text: "Has anyone started the IA yet? I'm struggling with the research question" },
-  { text: "Yes! I went with a question on market structures — way easier to find data for" },
-  { text: "Good call. I'm doing something on price elasticity, lots of real-world examples" },
-  { text: "Does anyone have good notes on Paper 2 structure? Exam is in 3 weeks" },
-  { text: "I can share mine after this session — remind me in the group" },
-]
-
-function seedRandom(seed) {
-  let s = seed
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    return (s >>> 0) / 0xffffffff
-  }
-}
-
 function formatTime(date) {
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
@@ -53,25 +37,8 @@ function Attachment({ attachment }) {
   )
 }
 
-export default function GroupChat({ users, roomId }) {
-  const rand = seedRandom(roomId.split('').reduce((a, c) => a + c.charCodeAt(0), 0))
-  const now = Date.now()
-
-  const [messages, setMessages] = useState(() => {
-    const online = users.filter(u => u.status !== 'offline')
-    return SAMPLE_MESSAGES.slice(0, Math.min(SAMPLE_MESSAGES.length, online.length + 1)).map((m, i) => {
-      const user = online[Math.floor(rand() * online.length)]
-      const minsAgo = Math.floor(rand() * 18) + 2
-      return {
-        id: i,
-        user,
-        text: m.text,
-        attachment: null,
-        time: new Date(now - minsAgo * 60 * 1000),
-        isOwn: false,
-      }
-    }).sort((a, b) => a.time - b.time)
-  })
+export default function GroupChat({ roomId }) {
+  const [messages, setMessages] = useState([])
 
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState(null)
