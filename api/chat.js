@@ -26,9 +26,11 @@ export default async function handler(req, res) {
     req.socket?.remoteAddress ||
     'unknown'
 
+  const isAdmin = process.env.ADMIN_IP && ip === process.env.ADMIN_IP
+
   const entry = getRateLimit(ip)
 
-  if (entry.count >= LIMIT) {
+  if (!isAdmin && entry.count >= LIMIT) {
     return res.status(429).json({ error: 'rate_limit_exceeded', remaining: 0 })
   }
 
