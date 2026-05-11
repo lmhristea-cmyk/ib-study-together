@@ -1,0 +1,125 @@
+.wrap {
+  display: flex; flex-direction: column; height: 100%; min-height: 0;
+  background: #FFFFFF; border-radius: var(--radius-xl);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.sustainBanner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; background: #F0FDF4;
+  border-bottom: 1px solid #DCFCE7; flex-shrink: 0;
+  font-size: 12px; color: #374151; line-height: 1.4;
+}
+.sustainBanner svg { flex-shrink: 0; }
+
+.messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.row {
+  display: flex; gap: 9px; align-items: flex-start;
+}
+.own {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: #E5E7EB; color: #374151;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+}
+
+.content { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
+.own .content { align-items: flex-end; }
+
+.meta { display: flex; align-items: baseline; gap: 7px; }
+.name { font-size: 12px; font-weight: 600; color: #374151; }
+.time { font-size: 11px; color: #9CA3AF; }
+.ownMeta { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.ownTime { font-size: 11px; color: #9CA3AF; }
+.deleteBtn {
+  background: none; border: none; padding: 2px; cursor: pointer;
+  color: #D1D5DB; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; transition: color 0.15s;
+  opacity: 0; pointer-events: none;
+}
+.row:hover .deleteBtn { opacity: 1; pointer-events: auto; }
+.deleteBtn:hover { color: #EF4444; }
+
+.bubble {
+  padding: 9px 13px; border-radius: 14px;
+  font-size: 13px; line-height: 1.55; word-break: break-word;
+}
+.bubbleOther {
+  background: #F3F4F6; border: 1px solid #E5E7EB;
+  color: #111827; border-radius: 4px 14px 14px 14px;
+}
+.bubbleOwn {
+  background: #111827; color: #FFFFFF;
+  border-radius: 14px 4px 14px 14px;
+}
+
+.attachLink { display: block; }
+.attachLink:hover .attachThumb { opacity: 0.88; }
+.attachLink:hover .pdfChip { border-color: #9CA3AF; color: #111827; }
+
+.attachThumb {
+  max-width: 200px; max-height: 150px; border-radius: 10px;
+  border: 1px solid #E5E7EB; object-fit: cover; display: block;
+}
+.pdfChip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; border-radius: 8px;
+  background: #F3F4F6; border: 1px solid #E5E7EB;
+  font-size: 12px; color: #374151; font-weight: 500;
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.attachPreview {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  background: #FAFAFA; flex-shrink: 0;
+}
+.removeBtn {
+  width: 20px; height: 20px; border-radius: 50%; border: none;
+  background: #D1D5DB; color: #374151; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+}
+.removeBtn:hover { background: #9CA3AF; color: #fff; }
+
+.inputRow {
+  display: flex; gap: 8px; padding: 12px;
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  align-items: center;
+}
+.fileInput { display: none; }
+.attachBtn {
+  width: 38px; height: 38px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: #FFFFFF; color: #9CA3AF;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; transition: all 0.15s;
+}
+.attachBtn:hover { color: #374151; border-color: #9CA3AF; background: #F9FAFB; }
+.input {
+  flex: 1; padding: 10px 14px;
+  background: #FFFFFF; border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-1);
+  font-size: 14px; outline: none; transition: border-color 0.15s;
+}
+.input:focus { border-color: #9CA3AF; }
+.input::placeholder { color: var(--text-3); }
+.sendBtn {
+  width: 38px; height: 38px; border-radius: var(--radius); border: none;
+  background: #111827; color: #FFFFFF; font-size: 18px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; transition: background 0.15s;
+}
+.sendBtn:hover:not(:disabled) { background: #1F2937; }
+.sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.hint {
+  font-size: 11px; color: var(--text-3); text-align: center;
+  padding: 0 12px 10px; flex-shrink: 0;
+}

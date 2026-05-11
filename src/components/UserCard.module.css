@@ -1,0 +1,35 @@
+.card {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 2px; border-radius: var(--radius-sm);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  transition: background 0.15s;
+}
+.card:last-child { border-bottom: none; }
+.card:hover { background: rgba(109,40,217,0.04); }
+.clickable { cursor: pointer; }
+.nameRow { display: flex; align-items: center; gap: 5px; }
+.unreadDot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: #8B5CF6; box-shadow: 0 0 4px #8B5CF688;
+}
+.avatarWrap { position: relative; flex-shrink: 0; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #E5E7EB; color: #374151;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.statusDot { position: absolute; bottom: 0; right: 0; width: 9px !important; height: 9px !important; border: 2px solid transparent; }
+.info { flex: 1; min-width: 0; }
+.name { font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.status { font-size: 11px; color: var(--text-3); }
+.meta { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.pomodoros { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tz { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.compact {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 99px;
+  background: var(--bg-card); border: 1px solid var(--border);
+}
+.compactName { font-size: 13px; font-weight: 500; color: var(--text-2); }
