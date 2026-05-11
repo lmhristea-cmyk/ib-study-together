@@ -57,6 +57,10 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'rate_limit_exceeded', remaining: 0 })
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not set on the server' })
+  }
+
   const { messages, system } = req.body
 
   try {
