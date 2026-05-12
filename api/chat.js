@@ -1,5 +1,5 @@
-const LIMIT_GUEST = 10
-const LIMIT_AUTH  = 25
+const LIMIT_GUEST = 5
+const LIMIT_AUTH  = 10
 const WINDOW_MS   = 24 * 60 * 60 * 1000
 
 const ipStore   = new Map() // guest: ip  -> { count, resetAt }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import AuthModal from './AuthModal'
+import AuthPromptModal from './AuthPromptModal'
 import styles from './GroupChat.module.css'
 
 function formatTime(date) {
@@ -15,26 +16,17 @@ function TrashIcon() {
   )
 }
 
-function PaperclipIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-    </svg>
-  )
-}
-
 export default function GroupChat({ roomId, session }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showGate, setShowGate] = useState(false)
   const [showFullAuth, setShowFullAuth] = useState(null) // 'signin' | 'signup' | null
   const bottomRef = useRef(null)
 
   const userName = session?.user?.email?.split('@')[0] || 'Guest'
 
   useEffect(() => {
-    // Load recent messages
     supabase
       .from('group_messages')
       .select('*')
@@ -46,7 +38,6 @@ export default function GroupChat({ roomId, session }) {
         setLoading(false)
       })
 
-    // Subscribe to new messages
     const channel = supabase
       .channel(`group_chat:${roomId}`)
       .on(
@@ -54,7 +45,6 @@ export default function GroupChat({ roomId, session }) {
         { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `room_id=eq.${roomId}` },
         (payload) => {
           setMessages(prev => {
-            // avoid duplicates (optimistic insert already added it)
             if (prev.find(m => m.id === payload.new.id)) return prev
             return [...prev, payload.new]
           })
@@ -69,10 +59,14 @@ export default function GroupChat({ roomId, session }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const guardedSend = () => {
+    if (!session) { setShowGate(true); return }
+    send()
+  }
+
   const send = async () => {
     const text = input.trim()
     if (!text) return
-    if (!session) { setShowAuthModal(true); return }
     setInput('')
 
     const optimistic = {
@@ -92,16 +86,17 @@ export default function GroupChat({ roomId, session }) {
       .single()
 
     if (!error && data) {
-      // Replace optimistic entry with real one
       setMessages(prev => prev.map(m => m.id === optimistic.id ? { ...data, isOwn: true } : m))
     }
   }
 
   const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); guardedSend() }
   }
 
   const deleteMsg = (id) => setMessages(prev => prev.filter(m => m.id !== id))
+
+  const openAuth = (mode) => { setShowGate(false); setShowFullAuth(mode) }
 
   return (
     <div className={styles.wrap}>
@@ -112,6 +107,7 @@ export default function GroupChat({ roomId, session }) {
         </svg>
         <span>Save energy. Save answers. Share notes. Learn from each other.</span>
       </div>
+
       <div className={styles.messages}>
         {loading && <p className={styles.loadingText}>Loading messages…</p>}
         {!loading && messages.length === 0 && (
@@ -155,29 +151,27 @@ export default function GroupChat({ roomId, session }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
-          placeholder="Message the room…"
+          onFocus={() => { if (!session) setShowGate(true) }}
+          placeholder={session ? 'Message the room…' : 'Sign in to send messages…'}
+          readOnly={!session}
         />
-        <button className={styles.sendBtn} onClick={send} disabled={!input.trim()}>↑</button>
+        <button className={styles.sendBtn} onClick={guardedSend} disabled={session && !input.trim()}>↑</button>
       </div>
-      <div className={styles.hint}>Press Enter to send</div>
+      <div className={styles.hint}>
+        {session ? 'Press Enter to send' : 'Read-only — sign in to chat'}
+      </div>
 
-      {showAuthModal && (
-        <div className={styles.gateOverlay} onClick={() => setShowAuthModal(false)}>
-          <div className={styles.gateModal} onClick={e => e.stopPropagation()}>
-            <span className={styles.gateAccent}>Almost there</span>
-            <h3 className={styles.gateTitle}>You're one message away from the conversation</h3>
-            <p className={styles.gateBody}>Create a free account to join the room and chat with other IB students.</p>
-            <button className={styles.gateSignUp} onClick={() => { setShowAuthModal(false); setShowFullAuth('signup') }}>
-              Sign up — it's free
-            </button>
-            <p className={styles.gateSignInRow}>
-              Already have an account?{' '}
-              <button className={styles.gateSignInLink} onClick={() => { setShowAuthModal(false); setShowFullAuth('signin') }}>
-                Sign in
-              </button>
-            </p>
-          </div>
-        </div>
+      {showGate && (
+        <AuthPromptModal
+          onClose={() => setShowGate(false)}
+          accentText="Join the conversation"
+          title="Create a free account to send messages"
+          body="You can read the chat as a guest. Sign up to reply, share notes, and study with others."
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => openAuth('signup')}
+          secondaryLabel="Sign in"
+          onSecondary={() => openAuth('signin')}
+        />
       )}
 
       {showFullAuth && (

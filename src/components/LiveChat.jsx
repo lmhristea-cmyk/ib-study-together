@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import styles from './LiveChat.module.css'
 import AuthModal from './AuthModal'
+import AuthPromptModal from './AuthPromptModal'
+import { useUserTier, TIER_LIMITS } from '../hooks/useUserTier'
 
 const CAS_SYSTEM_PROMPT = `You are a CAS Advisor for IB Diploma Programme students. CAS (Creativity, Activity, Service) is an experiential learning component — there are no exams, but students must complete 18 months of meaningful engagement and maintain a reflective portfolio.
 
@@ -110,6 +112,9 @@ function BookmarkIcon({ filled }) {
 }
 
 export default function LiveChat({ subject, subjectColor, onSave, savedIds = new Set(), topicPrompt = null, onTopicConsumed, session }) {
+  const tier = useUserTier(session)
+  const dailyLimit = TIER_LIMITS[tier]
+
   const [messages, setMessages] = useState([
     {
       id: 0,
@@ -118,12 +123,12 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
     },
   ])
   const [input, setInput] = useState('')
-  const [attachment, setAttachment] = useState(null) // { file, mediaType, data, previewUrl }
+  const [attachment, setAttachment] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showUploadNudge, setShowUploadNudge] = useState(false)
-  const [remaining, setRemaining] = useState(session ? 25 : 10)
-  const [showLimitPopup, setShowLimitPopup] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [remaining, setRemaining] = useState(dailyLimit)
+  const [showLimitPrompt, setShowLimitPrompt] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(null) // 'signin' | 'signup' | null
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const fileRef = useRef(null)
@@ -135,8 +140,8 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
   }, [messages, loading])
 
   useEffect(() => {
-    setRemaining(session ? 25 : 10)
-  }, [session])
+    setRemaining(TIER_LIMITS[tier])
+  }, [tier])
 
   useEffect(() => {
     if (!topicPrompt) return
@@ -195,11 +200,7 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
       })
 
       if (res.status === 429) {
-        if (session) {
-          setShowLimitPopup(true)
-        } else {
-          setShowAuthModal(true)
-        }
+        setShowLimitPrompt(true)
         return
       }
 
@@ -366,29 +367,43 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
         <button className={styles.sendBtn} onClick={send} disabled={!canSend}>↑</button>
       </div>
       <div className={styles.hint}>Press Enter to send · Shift+Enter for new line · Attach images or PDFs</div>
-      <div className={`${styles.remainingCounter} ${remaining <= 3 ? styles.remainingLow : ''}`}>
-        {remaining} message{remaining !== 1 ? 's' : ''} remaining today
-      </div>
-
-      {showLimitPopup && (
-        <div className={styles.limitOverlay}>
-          <div className={styles.limitModal}>
-            <h3 className={styles.limitTitle}>Daily limit reached</h3>
-            <p className={styles.limitBody}>
-              You've used your {session ? 25 : 10} AI Tutor messages for today. Your limit resets every 24 hours — come back tomorrow to keep studying!
-            </p>
-            <p className={styles.limitBody}>
-              In the meantime, you can still use Group Chat, your Library, and browse the study rooms.
-            </p>
-            <button className={styles.limitClose} onClick={() => setShowLimitPopup(false)}>Got it</button>
-          </div>
+      {tier !== 'proUser' && (
+        <div className={`${styles.remainingCounter} ${remaining <= 3 ? styles.remainingLow : ''}`}>
+          {remaining} message{remaining !== 1 ? 's' : ''} remaining today
         </div>
+      )}
+
+      {showLimitPrompt && tier === 'guest' && (
+        <AuthPromptModal
+          onClose={() => setShowLimitPrompt(false)}
+          accentText="Daily limit reached"
+          title={`You've used your ${TIER_LIMITS.guest} free AI messages`}
+          body={`Create a free account for ${TIER_LIMITS.freeUser} messages/day, or upgrade to Pro for unlimited.`}
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => { setShowLimitPrompt(false); setShowAuthModal('signup') }}
+          secondaryLabel="Sign in"
+          onSecondary={() => { setShowLimitPrompt(false); setShowAuthModal('signin') }}
+        />
+      )}
+
+      {showLimitPrompt && tier === 'freeUser' && (
+        <AuthPromptModal
+          onClose={() => setShowLimitPrompt(false)}
+          accentText="Daily limit reached"
+          title={`You've used your ${TIER_LIMITS.freeUser} daily AI messages`}
+          body="Upgrade to Pro for unlimited AI Tutor messages at $5/month."
+          primaryLabel="Upgrade to Pro"
+          onPrimary={() => setShowLimitPrompt(false)}
+          secondaryLabel="Got it"
+          onSecondary={() => setShowLimitPrompt(false)}
+        />
       )}
 
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onAuth={() => setShowAuthModal(false)}
+          initialMode={showAuthModal}
+          onClose={() => setShowAuthModal(null)}
+          onAuth={() => setShowAuthModal(null)}
         />
       )}
     </div>
