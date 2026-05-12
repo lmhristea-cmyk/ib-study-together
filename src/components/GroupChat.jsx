@@ -28,8 +28,8 @@ export default function GroupChat({ roomId, session }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showFullAuth, setShowFullAuth] = useState(null) // 'signin' | 'signup' | null
   const bottomRef = useRef(null)
-  const fileRef = useRef(null)
 
   const userName = session?.user?.email?.split('@')[0] || 'Guest'
 
@@ -72,6 +72,7 @@ export default function GroupChat({ roomId, session }) {
   const send = async () => {
     const text = input.trim()
     if (!text) return
+    if (!session) { setShowAuthModal(true); return }
     setInput('')
 
     const optimistic = {
@@ -148,46 +149,42 @@ export default function GroupChat({ roomId, session }) {
         <div ref={bottomRef} />
       </div>
 
-      {session ? (
-        <div className={styles.inputRow}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-            className={styles.fileInput}
-            onChange={() => {}}
-          />
-          <button
-            className={styles.attachBtn}
-            onClick={() => fileRef.current?.click()}
-            title="Attach image or PDF"
-            type="button"
-          >
-            <PaperclipIcon />
-          </button>
-          <input
-            className={styles.input}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Message the room…"
-          />
-          <button className={styles.sendBtn} onClick={send} disabled={!input.trim()}>↑</button>
-        </div>
-      ) : (
-        <div className={styles.signInPrompt}>
-          <p className={styles.signInText}>Sign in to chat with others in this room</p>
-          <button className={styles.signInBtn} onClick={() => setShowAuthModal(true)}>
-            Sign in / Sign up
-          </button>
-        </div>
-      )}
-      {session && <div className={styles.hint}>Press Enter to send</div>}
+      <div className={styles.inputRow}>
+        <input
+          className={styles.input}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Message the room…"
+        />
+        <button className={styles.sendBtn} onClick={send} disabled={!input.trim()}>↑</button>
+      </div>
+      <div className={styles.hint}>Press Enter to send</div>
 
       {showAuthModal && (
+        <div className={styles.gateOverlay} onClick={() => setShowAuthModal(false)}>
+          <div className={styles.gateModal} onClick={e => e.stopPropagation()}>
+            <span className={styles.gateAccent}>Almost there</span>
+            <h3 className={styles.gateTitle}>You're one message away from the conversation</h3>
+            <p className={styles.gateBody}>Create a free account to join the room and chat with other IB students.</p>
+            <button className={styles.gateSignUp} onClick={() => { setShowAuthModal(false); setShowFullAuth('signup') }}>
+              Sign up — it's free
+            </button>
+            <p className={styles.gateSignInRow}>
+              Already have an account?{' '}
+              <button className={styles.gateSignInLink} onClick={() => { setShowAuthModal(false); setShowFullAuth('signin') }}>
+                Sign in
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {showFullAuth && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onAuth={() => setShowAuthModal(false)}
+          initialMode={showFullAuth}
+          onClose={() => setShowFullAuth(null)}
+          onAuth={() => setShowFullAuth(null)}
         />
       )}
     </div>

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import styles from './AuthModal.module.css'
 
-export default function AuthModal({ onClose, onAuth }) {
-  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
+export default function AuthModal({ onClose, onAuth, initialMode = 'signin' }) {
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
