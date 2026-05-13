@@ -27,6 +27,14 @@
 .btn:hover:not(:disabled) { background: #374151; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .error { font-size: 12px; color: #EF4444; margin: 0; }
+.forgotBtn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 12px; color: #7C3AED; text-decoration: underline;
+  text-underline-offset: 2px; text-align: left;
+}
+.forgotBtn:hover:not(:disabled) { color: #6D28D9; }
+.forgotBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.resetConfirm { font-size: 12px; color: #059669; margin: 0; }
 .toggle {
   background: none; border: none; cursor: pointer;
   font-size: 12px; color: #6B7280; text-decoration: underline; padding: 0;

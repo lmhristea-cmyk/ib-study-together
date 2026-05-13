@@ -9,10 +9,12 @@ export default function AuthModal({ onClose, onAuth, initialMode = 'signin' }) {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   const submit = async (e) => {
     e.preventDefault()
     setError(null)
+    setResetSent(false)
     setLoading(true)
     try {
       if (mode === 'signup') {
@@ -33,6 +35,18 @@ export default function AuthModal({ onClose, onAuth, initialMode = 'signin' }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) { setError('Enter your email address above, then click "Forgot your password?".'); return }
+    setError(null)
+    setLoading(true)
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://ib-study-together.vercel.app/reset-password',
+    })
+    setLoading(false)
+    if (err) { setError(err.message); return }
+    setResetSent(true)
   }
 
   return (
@@ -74,6 +88,14 @@ export default function AuthModal({ onClose, onAuth, initialMode = 'signin' }) {
                 minLength={6}
               />
               {error && <p className={styles.error}>{error}</p>}
+              {mode === 'signin' && error?.toLowerCase().includes('invalid login') && !resetSent && (
+                <button type="button" className={styles.forgotBtn} onClick={handleForgotPassword} disabled={loading}>
+                  Forgot your password?
+                </button>
+              )}
+              {resetSent && (
+                <p className={styles.resetConfirm}>Password reset email sent — check your inbox.</p>
+              )}
               <button className={styles.btn} type="submit" disabled={loading}>
                 {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
               </button>
