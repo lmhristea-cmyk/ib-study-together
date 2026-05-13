@@ -36,6 +36,8 @@
 
 .meta { display: flex; align-items: baseline; gap: 7px; }
 .name { font-size: 12px; font-weight: 600; color: #374151; }
+.nameLink { cursor: pointer; border-radius: 3px; }
+.nameLink:hover { color: #7C3AED; }
 .time { font-size: 11px; color: #9CA3AF; }
 .ownMeta { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
 .ownTime { font-size: 11px; color: #9CA3AF; }

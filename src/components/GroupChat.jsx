@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import AuthModal from './AuthModal'
 import AuthPromptModal from './AuthPromptModal'
+import DmModal from './DirectMessage'
 import styles from './GroupChat.module.css'
 
 function formatTime(date) {
@@ -22,6 +23,8 @@ export default function GroupChat({ roomId, session }) {
   const [loading, setLoading] = useState(true)
   const [showGate, setShowGate] = useState(false)
   const [showFullAuth, setShowFullAuth] = useState(null) // 'signin' | 'signup' | null
+  const [dmTarget, setDmTarget] = useState(null)         // { userId, userName }
+  const [showDmGate, setShowDmGate] = useState(false)
   const bottomRef = useRef(null)
 
   const userName = session?.user?.email?.split('@')[0] || 'Guest'
@@ -73,6 +76,7 @@ export default function GroupChat({ roomId, session }) {
       id: `opt-${Date.now()}`,
       room_id: roomId,
       user_name: userName,
+      user_id: session.user.id,
       text,
       created_at: new Date().toISOString(),
       isOwn: true,
@@ -81,7 +85,7 @@ export default function GroupChat({ roomId, session }) {
 
     const { data, error } = await supabase
       .from('group_messages')
-      .insert({ room_id: roomId, user_name: userName, text })
+      .insert({ room_id: roomId, user_name: userName, user_id: session.user.id, text })
       .select()
       .single()
 
@@ -97,6 +101,12 @@ export default function GroupChat({ roomId, session }) {
   const deleteMsg = (id) => setMessages(prev => prev.filter(m => m.id !== id))
 
   const openAuth = (mode) => { setShowGate(false); setShowFullAuth(mode) }
+
+  const handleNameClick = (targetId, targetName) => {
+    if (!session) { setShowDmGate(true); return }
+    if (!targetId || targetId === session.user.id) return
+    setDmTarget({ userId: targetId, userName: targetName })
+  }
 
   return (
     <div className={styles.wrap}>
@@ -123,7 +133,12 @@ export default function GroupChat({ roomId, session }) {
               <div className={styles.content}>
                 {!isOwn && (
                   <div className={styles.meta}>
-                    <span className={styles.name}>{msg.user_name}</span>
+                    <span
+                      className={`${styles.name} ${!session || msg.user_id ? styles.nameLink : ''}`}
+                      onClick={() => handleNameClick(msg.user_id, msg.user_name)}
+                    >
+                      {msg.user_name}
+                    </span>
                     <span className={styles.time}>{formatTime(msg.created_at)}</span>
                   </div>
                 )}
@@ -179,6 +194,28 @@ export default function GroupChat({ roomId, session }) {
           initialMode={showFullAuth}
           onClose={() => setShowFullAuth(null)}
           onAuth={() => setShowFullAuth(null)}
+        />
+      )}
+
+      {showDmGate && (
+        <AuthPromptModal
+          onClose={() => setShowDmGate(false)}
+          accentText="Direct Messages"
+          title="Create a free account to send direct messages"
+          body="Sign up to message other students privately and collaborate one-on-one."
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => { setShowDmGate(false); setShowFullAuth('signup') }}
+          secondaryLabel="Sign in"
+          onSecondary={() => { setShowDmGate(false); setShowFullAuth('signin') }}
+        />
+      )}
+
+      {dmTarget && (
+        <DmModal
+          session={session}
+          toUserId={dmTarget.userId}
+          toUserName={dmTarget.userName}
+          onClose={() => setDmTarget(null)}
         />
       )}
     </div>
