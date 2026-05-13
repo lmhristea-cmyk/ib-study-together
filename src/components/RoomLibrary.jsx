@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import AuthPromptModal from './AuthPromptModal'
 import AuthModal from './AuthModal'
@@ -12,6 +12,16 @@ function TrashIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>
+  )
+}
+
+function UploadIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
     </svg>
   )
 }
@@ -31,7 +41,7 @@ function ContentPreview({ content, expanded }) {
   return (
     <div className={styles.preview}>
       {preview.split('\n').map((line, i) => {
-        const bullet = line.match(/^[-*]\s+(.+)/)
+        const bullet  = line.match(/^[-*]\s+(.+)/)
         const heading = line.match(/^#{1,3}\s+(.+)/)
         if (heading) return <p key={i} className={styles.previewHeading}>{renderInline(heading[1], i)}</p>
         if (bullet)  return <p key={i} className={styles.previewBullet}>• {renderInline(bullet[1], i)}</p>
@@ -52,7 +62,7 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <div className={styles.cardMeta}>
-          <span className={`${styles.badge} ${isAI ? styles.badgePurple : styles.badgeGrey}`}>
+          <span className={`${styles.badge} ${isAI ? styles.badgePurple : styles.badgeBlue}`}>
             {isAI ? 'AI Response' : 'Upload'}
           </span>
           <span className={styles.sharedBy}>by {item.user_display_name}</span>
@@ -60,7 +70,7 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
           <span className={styles.date}>{fmtDate(item.created_at)}</span>
         </div>
         {isOwn && (
-          <button className={styles.deleteBtn} onClick={() => onDelete(item.id)} title="Remove">
+          <button className={styles.deleteBtn} onClick={() => onDelete(item)} title="Remove">
             <TrashIcon />
           </button>
         )}
@@ -91,8 +101,11 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
 export default function RoomLibrary({ roomId, session }) {
   const [items,         setItems]         = useState([])
   const [loading,       setLoading]       = useState(true)
+  const [uploading,     setUploading]     = useState(false)
+  const [uploadError,   setUploadError]   = useState(null)
   const [showAuthGate,  setShowAuthGate]  = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(null)
+  const fileRef = useRef(null)
 
   const currentUserId = session?.user?.id || null
 
@@ -126,9 +139,77 @@ export default function RoomLibrary({ roomId, session }) {
     return () => { supabase.removeChannel(channel) }
   }, [roomId])
 
-  const handleDelete = async (id) => {
-    await supabase.from('room_library').delete().eq('id', id).eq('user_id', currentUserId)
-    setItems(prev => prev.filter(i => i.id !== id))
+  const handleUploadClick = () => {
+    if (!session) { setShowAuthGate(true); return }
+    fileRef.current?.click()
+  }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setUploadError(null)
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File too large — maximum size is 10 MB.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `${roomId}/${Date.now()}-${safeName}`
+
+      const { error: storageError } = await supabase.storage
+        .from('room-library-files')
+        .upload(path, file, { contentType: file.type, upsert: false })
+
+      if (storageError) throw storageError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-library-files')
+        .getPublicUrl(path)
+
+      const displayName = session.user.user_metadata?.full_name
+        || session.user.email?.split('@')[0]
+        || 'User'
+
+      const { error: dbError } = await supabase.from('room_library').insert({
+        room_id:           roomId,
+        user_id:           session.user.id,
+        user_display_name: displayName,
+        type:              'upload',
+        title:             file.name,
+        file_url:          publicUrl,
+        content:           null,
+      })
+
+      if (dbError) throw dbError
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed — please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDelete = async (item) => {
+    // Remove DB record
+    await supabase.from('room_library').delete().eq('id', item.id).eq('user_id', currentUserId)
+
+    // Also remove from Storage for file uploads
+    if (item.type === 'upload' && item.file_url) {
+      try {
+        const url = new URL(item.file_url)
+        const marker = '/object/public/room-library-files/'
+        const idx = url.pathname.indexOf(marker)
+        if (idx !== -1) {
+          const storagePath = decodeURIComponent(url.pathname.slice(idx + marker.length))
+          await supabase.storage.from('room-library-files').remove([storagePath])
+        }
+      } catch { /* storage cleanup best-effort */ }
+    }
+
+    setItems(prev => prev.filter(i => i.id !== item.id))
   }
 
   const openAuth = (mode) => { setShowAuthGate(false); setShowAuthModal(mode) }
@@ -137,8 +218,23 @@ export default function RoomLibrary({ roomId, session }) {
     <div className={styles.wrap}>
       <div className={styles.header}>
         <span className={styles.sectionLabel}>Room Library</span>
-        <span className={styles.count}>{items.length} shared</span>
+        <div className={styles.headerRight}>
+          <span className={styles.count}>{items.length} shared</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx"
+            className={styles.fileInput}
+            onChange={handleFileChange}
+          />
+          <button className={styles.uploadBtn} onClick={handleUploadClick} disabled={uploading}>
+            <UploadIcon />
+            {uploading ? 'Uploading…' : 'Upload'}
+          </button>
+        </div>
       </div>
+
+      {uploadError && <p className={styles.uploadError}>{uploadError}</p>}
 
       {loading && <p className={styles.stateText}>Loading…</p>}
 

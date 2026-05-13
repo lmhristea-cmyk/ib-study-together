@@ -8,7 +8,25 @@
   font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
   text-transform: uppercase; color: #9CA3AF;
 }
+.headerRight { display: flex; align-items: center; gap: 8px; }
 .count { font-size: 11px; color: #9CA3AF; }
+
+.fileInput { display: none; }
+
+.uploadBtn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: 1px solid #E5E7EB; border-radius: 6px;
+  padding: 3px 8px; font-size: 11px; font-weight: 600; color: #6B7280;
+  cursor: pointer; transition: all 0.15s;
+}
+.uploadBtn:hover:not(:disabled) { border-color: #111827; color: #111827; }
+.uploadBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.uploadError {
+  font-size: 12px; color: #DC2626;
+  background: #FEF2F2; border: 1px solid #FECACA;
+  border-radius: 6px; padding: 7px 10px; margin: 0;
+}
 
 .stateText {
   font-size: 13px; color: #9CA3AF; line-height: 1.55;
@@ -33,7 +51,7 @@
   border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
 }
 .badgePurple { background: #EDE9FE; color: #7C3AED; }
-.badgeGrey   { background: #F3F4F6; color: #6B7280; }
+.badgeBlue   { background: #DBEAFE; color: #1D4ED8; }
 .sharedBy { font-size: 11px; color: #6B7280; }
 .dot { color: #D1D5DB; font-size: 11px; }
 .date { font-size: 11px; color: #9CA3AF; }
