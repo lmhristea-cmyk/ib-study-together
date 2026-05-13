@@ -4,17 +4,23 @@ import Home from './pages/Home'
 import Rooms from './pages/Rooms'
 import Room from './pages/Room'
 import LobbyScreen from './components/LobbyScreen'
+import ResetPassword from './pages/ResetPassword'
 import { supabase } from './supabaseClient'
 
 export default function App() {
-  const [page, setPage] = useState('home')
+  const [page, setPage] = useState(() =>
+    window.location.pathname === '/reset-password' ? 'resetPassword' : 'home'
+  )
   const [currentRoom, setCurrentRoom] = useState(null)
   const [lobbyRoom, setLobbyRoom] = useState(null)
   const [session, setSession] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s)
+      if (event === 'PASSWORD_RECOVERY') setPage('resetPassword')
+    })
     return () => subscription.unsubscribe()
   }, [])
 
@@ -33,6 +39,7 @@ export default function App() {
         {page === 'rooms' && <Rooms navigate={navigate} />}
         {page === 'room' && currentRoom && <Room room={currentRoom} navigate={navigate} session={session} />}
         {page === 'lobby' && lobbyRoom && <LobbyScreen room={lobbyRoom} navigate={navigate} />}
+        {page === 'resetPassword' && <ResetPassword navigate={navigate} />}
       </main>
     </div>
   )
