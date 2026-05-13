@@ -202,8 +202,11 @@ function LibraryCard({ item, onDelete, onShareToRoom, isShared }) {
   const isUpload = item.type === 'upload'
   const isImage  = isUpload && item.mediaType?.startsWith('image/')
   const title    = getTitle(item)
-  const isLong   = !isUpload && item.content.length > 300
-  const displayContent = isLong && !expanded ? item.content.slice(0, 300) : item.content
+  const body = !isUpload
+    ? (() => { const ls = item.content.split('\n'); return ls.slice(ls.findIndex(l => l.trim() !== '') + 1).join('\n') })()
+    : ''
+  const isLong   = !isUpload && body.length > 300
+  const displayContent = isLong && !expanded ? body.slice(0, 300) : body
 
   return (
     <div className={styles.card}>
