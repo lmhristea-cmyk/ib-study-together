@@ -134,7 +134,7 @@ export default function GroupChat({ roomId, session }) {
                 {!isOwn && (
                   <div className={styles.meta}>
                     <span
-                      className={`${styles.name} ${!session || msg.user_id ? styles.nameLink : ''}`}
+                      className={`${styles.name} ${styles.nameLink}`}
                       onClick={() => handleNameClick(msg.user_id, msg.user_name)}
                     >
                       {msg.user_name}
