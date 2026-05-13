@@ -12,7 +12,7 @@ function fmtTime(ts) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-export default function MessagesPanel({ session, isActive, initialConv, onClearInitialConv, onUnread }) {
+export default function MessagesPanel({ session, isActive, initialConv, onClearInitialConv, onUnread, onSignIn }) {
   const [activeConv, setActiveConv] = useState(null)
   const [convs,      setConvs]      = useState([])
   const [loading,    setLoading]    = useState(true)
@@ -135,6 +135,7 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
           </svg>
         </div>
         <p className={styles.guestText}>Sign in to send and receive direct messages.</p>
+        <button className={styles.signInBtn} onClick={() => onSignIn?.()}>Sign in</button>
       </div>
     )
   }

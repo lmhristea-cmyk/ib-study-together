@@ -293,6 +293,7 @@ export default function Room({ room, navigate, session }) {
                   initialConv={dmConvTarget}
                   onClearInitialConv={() => setDmConvTarget(null)}
                   onUnread={() => setUnreadDm(d => d + 1)}
+                  onSignIn={() => setShowDmAuth('signin')}
                 />
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
