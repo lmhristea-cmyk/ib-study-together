@@ -140,10 +140,8 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
     )
   }
 
-  // Stable root div for all authenticated states — switching the root element type
-  // (div → DmThread → div) inside always-mounted panelVisible caused React to silently
-  // fail the reconciliation, so the thread never appeared. Ternary inside a single root
-  // lets React swap content without touching the root node.
+  console.log('[MP] render', { hasSession: !!session, activeConv, convsCount: convs.length })
+
   return (
     <div className={styles.wrap}>
       {activeConv ? (
@@ -166,7 +164,7 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
               <div
                 key={conv.userId}
                 className={styles.convRow}
-                onClick={() => setActiveConv(conv)}
+                onClick={() => { console.log('[MP] click conv', conv); setActiveConv(conv) }}
               >
                 <span className={styles.avatar}>{conv.userName.charAt(0).toUpperCase()}</span>
                 <div className={styles.convInfo}>
