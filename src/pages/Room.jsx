@@ -45,7 +45,7 @@ export default function Room({ room, navigate, session }) {
   }, [])
 
   const [presentUsers, setPresentUsers] = useState([])
-  const presenceKeyRef = useRef(session?.user?.id ?? crypto.randomUUID())
+  const presenceKeyRef = useRef(crypto.randomUUID())
 
   const [dmTarget,   setDmTarget]   = useState(null)  // { userId, userName }
   const [showDmGate, setShowDmGate] = useState(false)
@@ -71,7 +71,12 @@ export default function Room({ room, navigate, session }) {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ display_name: displayName, uid: presenceKeyRef.current, authenticated: !!session })
+          await channel.track({
+            display_name: displayName,
+            uid: session?.user?.id || null,
+            self_key: presenceKeyRef.current,
+            authenticated: !!session,
+          })
         }
       })
 
@@ -151,8 +156,8 @@ export default function Room({ room, navigate, session }) {
             ) : (
               <div className={styles.presenceList}>
                 {presentUsers.map(u => {
-                  const isMe = u.uid === presenceKeyRef.current
-                  const canDm = !isMe && u.authenticated
+                  const isMe = u.self_key === presenceKeyRef.current
+                  const canDm = !isMe && u.authenticated && !!u.uid
                   return (
                     <div
                       key={u.presence_ref}
