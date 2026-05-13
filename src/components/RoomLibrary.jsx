@@ -37,7 +37,11 @@ function renderInline(text, keyPrefix) {
 }
 
 function ContentPreview({ content, expanded }) {
-  const preview = expanded ? content : content.slice(0, 280)
+  // Skip the first non-empty line — it's already shown as cardTitle
+  const lines = content.split('\n')
+  const firstContentIdx = lines.findIndex(l => l.trim() !== '')
+  const body = lines.slice(firstContentIdx + 1).join('\n')
+  const preview = expanded ? body : body.slice(0, 280)
   return (
     <div className={styles.preview}>
       {preview.split('\n').map((line, i) => {
@@ -54,9 +58,13 @@ function ContentPreview({ content, expanded }) {
 
 function RoomLibraryCard({ item, currentUserId, onDelete }) {
   const [expanded, setExpanded] = useState(false)
-  const isOwn    = currentUserId && item.user_id === currentUserId
-  const isAI     = item.type === 'ai_response'
-  const isLong   = isAI && item.content && item.content.length > 280
+  const isOwn  = currentUserId && item.user_id === currentUserId
+  const isAI   = item.type === 'ai_response'
+  // "long" is measured against the body after skipping the first line (which is the title)
+  const body   = isAI && item.content
+    ? item.content.split('\n').slice(item.content.split('\n').findIndex(l => l.trim() !== '') + 1).join('\n')
+    : ''
+  const isLong = body.length > 280
 
   return (
     <div className={styles.card}>
