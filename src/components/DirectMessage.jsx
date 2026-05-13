@@ -33,23 +33,60 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
         setLoading(false)
       })
 
-    // Listen for messages sent to me from this specific user
-    const channel = supabase
-      .channel(`dm:${fromUserId}:${toUserId}`)
+    const addMessage = (newMsg) => {
+      setMessages(prev => prev.find(m => m.id === newMsg.id) ? prev : [...prev, newMsg])
+    }
+
+    // Incoming: messages sent TO me by the other user
+    const incoming = supabase
+      .channel(`dm-in:${fromUserId}:${toUserId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages',
           filter: `recipient_id=eq.${fromUserId}` },
         (payload) => {
           if (payload.new.sender_id !== toUserId) return
-          setMessages(prev =>
-            prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new]
-          )
+          addMessage(payload.new)
         }
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        if (err) console.error('DM incoming subscription error:', err)
+        else console.log('DM incoming subscription:', status)
+      })
 
-    return () => { supabase.removeChannel(channel) }
+    // Outgoing: my messages confirmed by the DB (replaces optimistic entry)
+    const outgoing = supabase
+      .channel(`dm-out:${fromUserId}:${toUserId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'direct_messages',
+          filter: `sender_id=eq.${fromUserId}` },
+        (payload) => {
+          if (payload.new.recipient_id !== toUserId) return
+          setMessages(prev => {
+            if (prev.find(m => m.id === payload.new.id)) return prev
+            // Replace the matching optimistic message if one exists
+            const optIdx = prev.findIndex(
+              m => m.id.startsWith('opt-') && m.content === payload.new.content
+            )
+            if (optIdx !== -1) {
+              const next = [...prev]
+              next[optIdx] = payload.new
+              return next
+            }
+            return [...prev, payload.new]
+          })
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) console.error('DM outgoing subscription error:', err)
+        else console.log('DM outgoing subscription:', status)
+      })
+
+    return () => {
+      supabase.removeChannel(incoming)
+      supabase.removeChannel(outgoing)
+    }
   }, [fromUserId, toUserId])
 
   useEffect(() => {
