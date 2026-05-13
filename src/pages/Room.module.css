@@ -222,9 +222,9 @@
 .muteBtn:hover { color: var(--text-1); border-color: #9CA3AF; }
 
 @media (max-width: 900px) {
-  /* Constrain the page to the remaining viewport below the 60px navbar.
-     dvh shrinks when the iOS keyboard opens, so the chatPanel shrinks with it
-     and the inputRow stays visible — no hardcoded pixel offsets needed. */
+  /* Constrain the page height so every flex child can fill remaining space.
+     dvh shrinks when the iOS keyboard opens — the chatPanel and inputRow
+     resize automatically with no hardcoded pixel offsets. */
   .page {
     height: calc(100vh - 60px);
     height: calc(100svh - 60px);
@@ -232,16 +232,19 @@
     overflow: hidden;
     padding-bottom: 0;
   }
-  /* Keep auto 1fr so the chatPanel row expands to fill whatever the page leaves. */
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .timerRow { grid-column: 1; }
+  /* Switch to flex-column so chatPanel can use flex:1 reliably on all iOS
+     versions — nested grid fr units inside a flex item are not reliably
+     "definite" in older Safari and produce a 0-height grid row. */
+  .layout { display: flex; flex-direction: column; }
+  .timerRow { flex-shrink: 0; }
   .sidebar { display: none; }
-  /* Hide the fixed-position sound widget on mobile — its bottom:24px placement
-     sits directly on top of the inputRow and blocks the send button. */
   .soundWidget { display: none; }
   .chatPanel {
+    flex: 1;
+    min-height: 0;
     grid-row: auto;
     height: auto;
+    border-radius: 0;
   }
   .mobileTabs { display: flex; }
   .mobilePanel { display: block; }
