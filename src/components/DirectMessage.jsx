@@ -28,6 +28,7 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
       .order('created_at', { ascending: true })
       .limit(100)
       .then(({ data, error }) => {
+        console.log('DM history:', data, error)
         if (error) console.error('DM load error:', error)
         if (data) setMessages(data)
         setLoading(false)
@@ -37,15 +38,16 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
       setMessages(prev => prev.find(m => m.id === newMsg.id) ? prev : [...prev, newMsg])
     }
 
-    // Incoming: messages sent TO me by the other user
+    // Incoming: messages sent BY the other user (filter by sender avoids conflict with dm-notify)
     const incoming = supabase
       .channel(`dm-in:${fromUserId}:${toUserId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `recipient_id=eq.${fromUserId}` },
+          filter: `sender_id=eq.${toUserId}` },
         (payload) => {
-          if (payload.new.sender_id !== toUserId) return
+          console.log('DM incoming payload:', payload.new)
+          if (payload.new.recipient_id !== fromUserId) return
           addMessage(payload.new)
         }
       )

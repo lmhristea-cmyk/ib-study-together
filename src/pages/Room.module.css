@@ -160,18 +160,26 @@
   background: #EF4444; border: 1.5px solid #fff;
   animation: dmPulse 1.5s ease-in-out infinite;
 }
-.mobilePeopleDropdown {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  background: #fff; border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px 14px;
-  min-width: 200px; max-width: 260px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  z-index: 200;
+/* Mobile bottom sheet — position:fixed renders above all layout, no iOS clipping */
+.mobileSheet {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: flex-end;
 }
-.mobilePeopleHeader {
+.mobileSheetContent {
+  background: #fff; width: 100%;
+  border-radius: 16px 16px 0 0;
+  padding: 12px 20px 36px;
+  max-height: 60vh; overflow-y: auto;
+}
+.mobileSheetHandle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: #D1D5DB; margin: 0 auto 16px;
+}
+.mobileSheetLabel {
   font-size: 9px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: #D1D5DB;
-  margin-bottom: 10px;
+  text-transform: uppercase; color: #9CA3AF;
+  margin-bottom: 12px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .dmBadgeLabel {

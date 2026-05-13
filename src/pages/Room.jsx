@@ -13,6 +13,7 @@ import styles from './Room.module.css'
 const libraryKey = (roomId) => `ib-library-${roomId}`
 
 function UserList({ users, selfKey, onUserClick }) {
+  console.log('[UserList] render — users:', users.length, users)
   if (users.length === 0) {
     return <p className={styles.emptyPresence}>No one else is here yet!</p>
   }
@@ -181,24 +182,8 @@ export default function Room({ room, navigate, session }) {
     setLibrary(prev => [item, ...prev])
   }, [])
 
-  // Mobile people dropdown
+  // Mobile people sheet
   const [mobileUsersOpen, setMobileUsersOpen] = useState(false)
-  const mobileUsersRef = useRef(null)
-
-  useEffect(() => {
-    if (!mobileUsersOpen) return
-    const handler = (e) => {
-      if (mobileUsersRef.current && !mobileUsersRef.current.contains(e.target)) {
-        setMobileUsersOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    document.addEventListener('touchstart', handler)
-    return () => {
-      document.removeEventListener('mousedown', handler)
-      document.removeEventListener('touchstart', handler)
-    }
-  }, [mobileUsersOpen])
 
   return (
     <div className={styles.page}>
@@ -219,8 +204,8 @@ export default function Room({ room, navigate, session }) {
           </div>
         </div>
         <div className={styles.headerRight}>
-          {/* Mobile-only people button */}
-          <div className={styles.mobilePeopleWrap} ref={mobileUsersRef}>
+          {/* Mobile-only people button — sheet rendered at body level below */}
+          <div className={styles.mobilePeopleWrap}>
             <button
               className={styles.mobilePeopleBtn}
               onClick={() => setMobileUsersOpen(o => !o)}
@@ -237,22 +222,6 @@ export default function Room({ room, navigate, session }) {
               )}
               {unreadDm > 0 && <span className={styles.dmBadge} />}
             </button>
-
-            {mobileUsersOpen && (
-              <div className={styles.mobilePeopleDropdown}>
-                <div className={styles.mobilePeopleHeader}>
-                  In this room
-                  {unreadDm > 0 && (
-                    <span className={styles.dmBadgeLabel}>{unreadDm} new DM{unreadDm > 1 ? 's' : ''}</span>
-                  )}
-                </div>
-                <UserList
-                    users={presentUsers}
-                    selfKey={presenceKeyRef.current}
-                    onUserClick={(uid, name) => { setMobileUsersOpen(false); handleOpenDm(uid, name) }}
-                  />
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -415,6 +384,26 @@ export default function Room({ room, navigate, session }) {
           onClose={() => setShowDmAuth(null)}
           onAuth={() => setShowDmAuth(null)}
         />
+      )}
+
+      {/* Mobile people bottom sheet — fixed overlay avoids iOS flex/overflow clipping */}
+      {mobileUsersOpen && (
+        <div className={styles.mobileSheet} onClick={() => setMobileUsersOpen(false)}>
+          <div className={styles.mobileSheetContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.mobileSheetHandle} />
+            <div className={styles.mobileSheetLabel}>
+              In this room
+              {unreadDm > 0 && (
+                <span className={styles.dmBadgeLabel}>{unreadDm} new DM{unreadDm > 1 ? 's' : ''}</span>
+              )}
+            </div>
+            <UserList
+              users={presentUsers}
+              selfKey={presenceKeyRef.current}
+              onUserClick={(uid, name) => { setMobileUsersOpen(false); handleOpenDm(uid, name) }}
+            />
+          </div>
+        </div>
       )}
     </div>
   )
