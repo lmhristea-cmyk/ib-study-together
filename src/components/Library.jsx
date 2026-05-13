@@ -1,5 +1,9 @@
 import { useState, useRef } from 'react'
 import styles from './Library.module.css'
+import RoomLibrary from './RoomLibrary'
+import AuthPromptModal from './AuthPromptModal'
+import AuthModal from './AuthModal'
+import { supabase } from '../supabaseClient'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -57,6 +61,14 @@ function BookmarkIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+}
+function ShareIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
     </svg>
   )
 }
@@ -185,7 +197,7 @@ function exportResponseAsPDF(item) {
 
 // ── Cards ─────────────────────────────────────────────────────────────────────
 
-function LibraryCard({ item, onDelete }) {
+function LibraryCard({ item, onDelete, onShareToRoom, isShared }) {
   const [expanded, setExpanded] = useState(false)
   const isUpload = item.type === 'upload'
   const isImage  = isUpload && item.mediaType?.startsWith('image/')
@@ -234,9 +246,20 @@ function LibraryCard({ item, onDelete }) {
                 {expanded ? 'Show less ↑' : 'Show more ↓'}
               </button>
             )}
-            <button className={styles.exportBtn} onClick={() => exportResponseAsPDF(item)}>
-              <ExportIcon /> Export PDF
-            </button>
+            <div className={styles.cardActions}>
+              <button className={styles.exportBtn} onClick={() => exportResponseAsPDF(item)}>
+                <ExportIcon /> Export PDF
+              </button>
+              {onShareToRoom && (
+                <button
+                  className={`${styles.shareBtn} ${isShared ? styles.shareBtnDone : ''}`}
+                  onClick={() => !isShared && onShareToRoom(item)}
+                  disabled={isShared}
+                >
+                  <ShareIcon /> {isShared ? 'Shared ✓' : 'Share to Room'}
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -257,12 +280,31 @@ const VIEW_TABS = [
   { value: 'ai',      label: 'AI Saved' },
 ]
 
-export default function Library({ items, onDelete, onUpload }) {
-  const [query,     setQuery]     = useState('')
-  const [view,      setView]      = useState('uploads')
-  const [sort,      setSort]      = useState('newest')
-  const [uploading, setUploading] = useState(false)
+export default function Library({ items, onDelete, onUpload, roomId, session }) {
+  const [query,        setQuery]        = useState('')
+  const [view,         setView]         = useState('uploads')
+  const [sort,         setSort]         = useState('newest')
+  const [uploading,    setUploading]    = useState(false)
+  const [sharedIds,    setSharedIds]    = useState(new Set())
+  const [showShareGate,  setShowShareGate]  = useState(false)
+  const [showShareModal, setShowShareModal] = useState(null)
   const fileRef = useRef(null)
+
+  const handleShareToRoom = async (item) => {
+    if (!session) { setShowShareGate(true); return }
+    const displayName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+    const { error } = await supabase.from('room_library').insert({
+      room_id: roomId,
+      user_id: session.user.id,
+      user_display_name: displayName,
+      type: 'ai_response',
+      title: getTitle(item),
+      content: item.content,
+    })
+    if (!error) setSharedIds(prev => new Set([...prev, item.id]))
+  }
+
+  const openShareAuth = (mode) => { setShowShareGate(false); setShowShareModal(mode) }
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
@@ -342,22 +384,46 @@ export default function Library({ items, onDelete, onUpload }) {
           </div>
         ) : (
           <div className={styles.grid}>
-            {filtered.map(item => <LibraryCard key={item.id} item={item} onDelete={onDelete} />)}
+            {filtered.map(item => (
+              <LibraryCard
+                key={item.id}
+                item={item}
+                onDelete={onDelete}
+                onShareToRoom={roomId ? handleShareToRoom : undefined}
+                isShared={sharedIds.has(item.id)}
+              />
+            ))}
           </div>
         )}
 
         {/* Room Library */}
-        <div className={styles.roomSection}>
-          <div className={styles.sectionHead}>
-            <span className={styles.sectionLabel}>Room Library</span>
-            <span className={styles.comingSoon}>Coming soon</span>
+        {roomId && (
+          <div className={styles.roomSection}>
+            <RoomLibrary roomId={roomId} session={session} />
           </div>
-          <div className={styles.comingSoonCard}>
-            <BookIcon />
-            <span>Shared notes and resources from everyone in this room will appear here.</span>
-          </div>
-        </div>
+        )}
       </div>
+
+      {showShareGate && (
+        <AuthPromptModal
+          onClose={() => setShowShareGate(false)}
+          accentText="Sign in to share"
+          title="Create a free account to share with your room"
+          body="Guests can view the Room Library. Sign up to contribute AI responses."
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => openShareAuth('signup')}
+          secondaryLabel="Sign in"
+          onSecondary={() => openShareAuth('signin')}
+        />
+      )}
+
+      {showShareModal && (
+        <AuthModal
+          initialMode={showShareModal}
+          onClose={() => setShowShareModal(null)}
+          onAuth={() => setShowShareModal(null)}
+        />
+      )}
     </div>
   )
 }

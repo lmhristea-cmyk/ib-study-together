@@ -177,13 +177,14 @@ export default function Room({ room, navigate, session }) {
                   topicPrompt={topicPrompt}
                   onTopicConsumed={handleTopicConsumed}
                   session={session}
+                  roomId={room.id}
                 />
               </div>
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
                 <GroupChat roomId={room.id} session={session} />
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
-                <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} />
+                <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} roomId={room.id} session={session} />
               </div>
               <div className={rightPanel === 'ebooks' ? styles.panelVisible : styles.panelHidden}>
                 <div className={styles.ebooksEmpty}>

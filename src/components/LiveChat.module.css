@@ -156,17 +156,32 @@
 .deleteBtn:hover { color: #EF4444; }
 .msg:hover .deleteBtn { opacity: 1; pointer-events: auto; }
 
+.msgActions {
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0; transition: opacity 0.15s; margin-top: 2px; align-self: flex-start;
+}
+.msg:hover .msgActions { opacity: 1; }
+
 .bookmarkBtn {
-  opacity: 0; pointer-events: none;
   display: flex; align-items: center; gap: 4px;
   background: none; border: none; cursor: pointer;
-  color: #9CA3AF; font-size: 11px; padding: 2px 0; margin-top: 2px;
-  border-radius: 3px; transition: color 0.15s, opacity 0.15s;
+  color: #9CA3AF; font-size: 11px; padding: 2px 0;
+  border-radius: 3px; transition: color 0.15s;
   align-self: flex-start;
 }
 .bookmarkBtn:hover { color: #374151; }
-.bookmarkSaved { opacity: 1 !important; pointer-events: auto !important; color: #374151 !important; }
-.msg:hover .bookmarkBtn { opacity: 1; pointer-events: auto; }
+.bookmarkSaved { color: #374151 !important; }
+
+.shareRoomBtn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  color: #9CA3AF; font-size: 11px; padding: 2px 0;
+  border-radius: 3px; transition: color 0.15s;
+  align-self: flex-start;
+}
+.shareRoomBtn:hover:not(:disabled) { color: #7C3AED; }
+.shareRoomBtnDone { color: #059669 !important; cursor: default; }
+.msg:hover .msgActions { opacity: 1; }
 
 .remainingCounter {
   text-align: center; font-size: 11px; color: #9CA3AF;

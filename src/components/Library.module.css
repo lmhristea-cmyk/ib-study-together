@@ -113,13 +113,25 @@
 }
 .toggleBtn:hover { color: #111827; }
 
+.cardActions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+
 .exportBtn {
-  display: flex; align-items: center; gap: 4px; align-self: flex-start;
+  display: flex; align-items: center; gap: 4px;
   background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 3px 8px; font-size: 11px; font-weight: 500; color: var(--text-3);
-  cursor: pointer; transition: all 0.15s; margin-top: 2px;
+  cursor: pointer; transition: all 0.15s;
 }
 .exportBtn:hover { border-color: #111827; color: #111827; }
+
+.shareBtn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: 1px solid #DDD6FE; border-radius: var(--radius-sm);
+  padding: 3px 8px; font-size: 11px; font-weight: 500; color: #7C3AED;
+  cursor: pointer; transition: all 0.15s;
+}
+.shareBtn:hover:not(:disabled) { background: #EDE9FE; border-color: #7C3AED; }
+.shareBtnDone { color: #059669; border-color: #A7F3D0; cursor: default; }
+.shareBtnDone:hover { background: none; border-color: #A7F3D0; }
 
 /* ── Upload display ── */
 .thumbLink { display: block; }
@@ -149,7 +161,7 @@
 .empty { font-size: 13px; color: var(--text-3); text-align: center; padding: 24px 16px; line-height: 1.6; }
 
 /* ── Room Library ── */
-.roomSection { display: flex; flex-direction: column; gap: 10px; opacity: 0.5; }
+.roomSection { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .comingSoon {
   font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: #9CA3AF; background: #F3F4F6; border: 1px solid #E5E7EB;

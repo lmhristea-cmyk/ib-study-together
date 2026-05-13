@@ -1,0 +1,74 @@
+.wrap { display: flex; flex-direction: column; gap: 10px; }
+
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 6px;
+}
+.sectionLabel {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #9CA3AF;
+}
+.count { font-size: 11px; color: #9CA3AF; }
+
+.stateText {
+  font-size: 13px; color: #9CA3AF; line-height: 1.55;
+  padding: 12px 0; margin: 0;
+}
+
+/* Card */
+.card {
+  border: 1px solid #E5E7EB; border-radius: 10px;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  background: #FAFAFA;
+}
+
+.cardHeader {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.cardMeta {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1;
+}
+.badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px;
+  border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+}
+.badgePurple { background: #EDE9FE; color: #7C3AED; }
+.badgeGrey   { background: #F3F4F6; color: #6B7280; }
+.sharedBy { font-size: 11px; color: #6B7280; }
+.dot { color: #D1D5DB; font-size: 11px; }
+.date { font-size: 11px; color: #9CA3AF; }
+
+.deleteBtn {
+  background: none; border: none; cursor: pointer;
+  color: #D1D5DB; padding: 2px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.deleteBtn:hover { color: #EF4444; }
+
+.cardTitle {
+  font-size: 13px; font-weight: 600; color: #111827;
+  margin: 0; line-height: 1.4;
+}
+
+/* Content preview */
+.preview { display: flex; flex-direction: column; gap: 2px; }
+.previewLine    { font-size: 12px; color: #374151; margin: 0; line-height: 1.55; }
+.previewBullet  { font-size: 12px; color: #374151; margin: 0; padding-left: 4px; line-height: 1.55; }
+.previewHeading { font-size: 12px; font-weight: 600; color: #111827; margin: 0; }
+.inlineCode {
+  background: #F3F4F6; border: 1px solid #E5E7EB;
+  border-radius: 3px; padding: 1px 4px; font-size: 11px; font-family: monospace;
+}
+
+.toggleBtn {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 12px; color: #7C3AED; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 2px; align-self: flex-start;
+}
+.toggleBtn:hover { color: #6D28D9; }
+
+.fileLink {
+  font-size: 12px; color: #7C3AED; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.fileLink:hover { color: #6D28D9; }

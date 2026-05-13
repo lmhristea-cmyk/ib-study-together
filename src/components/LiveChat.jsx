@@ -3,6 +3,18 @@ import styles from './LiveChat.module.css'
 import AuthModal from './AuthModal'
 import AuthPromptModal from './AuthPromptModal'
 import { useUserTier, TIER_LIMITS } from '../hooks/useUserTier'
+import { supabase } from '../supabaseClient'
+
+function deriveTitle(content) {
+  const first = content
+    .replace(/^#+\s*/m, '')
+    .split('\n')[0]
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^[-*]\s+/, '')
+    .trim()
+  return first.length > 70 ? first.slice(0, 70) + '…' : first
+}
 
 const CAS_SYSTEM_PROMPT = `You are a CAS Advisor for IB Diploma Programme students. CAS (Creativity, Activity, Service) is an experiential learning component — there are no exams, but students must complete 18 months of meaningful engagement and maintain a reflective portfolio.
 
@@ -111,7 +123,7 @@ function BookmarkIcon({ filled }) {
     : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
 }
 
-export default function LiveChat({ subject, subjectColor, onSave, savedIds = new Set(), topicPrompt = null, onTopicConsumed, session }) {
+export default function LiveChat({ subject, subjectColor, onSave, savedIds = new Set(), topicPrompt = null, onTopicConsumed, session, roomId }) {
   const tier = useUserTier(session)
   const dailyLimit = TIER_LIMITS[tier]
 
@@ -127,8 +139,10 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
   const [loading, setLoading] = useState(false)
   const [showUploadNudge, setShowUploadNudge] = useState(false)
   const [remaining, setRemaining] = useState(dailyLimit)
-  const [showLimitPrompt, setShowLimitPrompt] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(null) // 'signin' | 'signup' | null
+  const [showLimitPrompt,  setShowLimitPrompt]  = useState(false)
+  const [showAuthModal,    setShowAuthModal]    = useState(null) // 'signin' | 'signup' | null
+  const [sharedMsgIds,     setSharedMsgIds]     = useState(new Set())
+  const [showShareGate,    setShowShareGate]    = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const fileRef = useRef(null)
@@ -230,6 +244,20 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
 
   sendRef.current = send
 
+  const handleShareToRoom = async (msg) => {
+    if (!session) { setShowShareGate(true); return }
+    const displayName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
+    const { error } = await supabase.from('room_library').insert({
+      room_id: roomId,
+      user_id: session.user.id,
+      user_display_name: displayName,
+      type: 'ai_response',
+      title: deriveTitle(msg.content),
+      content: msg.content,
+    })
+    if (!error) setSharedMsgIds(prev => new Set([...prev, msg.id]))
+  }
+
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
@@ -273,15 +301,30 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
                   <TrashIcon />
                 </button>
               )}
-              {msg.role === 'assistant' && msg.id !== 0 && onSave && (
-                <button
-                  className={`${styles.bookmarkBtn} ${savedIds.has(msg.id) ? styles.bookmarkSaved : ''}`}
-                  onClick={() => onSave({ msgId: msg.id, content: msg.content })}
-                  title={savedIds.has(msg.id) ? 'Saved to library' : 'Save to library'}
-                >
-                  <BookmarkIcon filled={savedIds.has(msg.id)} />
-                  {savedIds.has(msg.id) ? 'Saved' : 'Save'}
-                </button>
+              {msg.role === 'assistant' && msg.id !== 0 && (
+                <div className={styles.msgActions}>
+                  {onSave && (
+                    <button
+                      className={`${styles.bookmarkBtn} ${savedIds.has(msg.id) ? styles.bookmarkSaved : ''}`}
+                      onClick={() => onSave({ msgId: msg.id, content: msg.content })}
+                      title={savedIds.has(msg.id) ? 'Saved to library' : 'Save to library'}
+                    >
+                      <BookmarkIcon filled={savedIds.has(msg.id)} />
+                      {savedIds.has(msg.id) ? 'Saved' : 'Save'}
+                    </button>
+                  )}
+                  {roomId && (
+                    <button
+                      className={`${styles.shareRoomBtn} ${sharedMsgIds.has(msg.id) ? styles.shareRoomBtnDone : ''}`}
+                      onClick={() => !sharedMsgIds.has(msg.id) && handleShareToRoom(msg)}
+                      disabled={sharedMsgIds.has(msg.id)}
+                      title="Share to Room Library"
+                    >
+                      <ShareRoomIcon />
+                      {sharedMsgIds.has(msg.id) ? 'Shared ✓' : 'Share'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -406,6 +449,19 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
           onAuth={() => setShowAuthModal(null)}
         />
       )}
+
+      {showShareGate && (
+        <AuthPromptModal
+          onClose={() => setShowShareGate(false)}
+          accentText="Sign in to share"
+          title="Create a free account to share with your room"
+          body="Guests can view the Room Library. Sign up to contribute AI responses."
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => { setShowShareGate(false); setShowAuthModal('signup') }}
+          secondaryLabel="Sign in"
+          onSecondary={() => { setShowShareGate(false); setShowAuthModal('signin') }}
+        />
+      )}
     </div>
   )
 }
@@ -414,6 +470,15 @@ function TrashIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>
+  )
+}
+
+function ShareRoomIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
     </svg>
   )
 }
