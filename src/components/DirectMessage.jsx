@@ -71,7 +71,7 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
     }
     setMessages(prev => [...prev, optimistic])
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('direct_messages')
       .insert({
         sender_id: fromUserId,
@@ -79,14 +79,10 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
         sender_display_name: fromUserName,
         content: text,
       })
-      .select()
-      .single()
 
     if (error) {
       console.error('DM send error:', error)
       setMessages(prev => prev.filter(m => m.id !== optimistic.id))
-    } else if (data) {
-      setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
     }
   }
 
