@@ -12,6 +12,36 @@ import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
 
+function UserList({ users, selfKey, onUserClick }) {
+  if (users.length === 0) {
+    return <p className={styles.emptyPresence}>No one else is here yet!</p>
+  }
+  return (
+    <div className={styles.presenceList}>
+      {users.map(u => {
+        const isMe = u.self_key === selfKey
+        const canDm = !isMe && u.authenticated && !!u.uid
+        return (
+          <div
+            key={u.presence_ref}
+            className={`${styles.presenceUser} ${!isMe ? styles.presenceUserClickable : ''}`}
+            onClick={() => {
+              if (isMe) return
+              onUserClick(canDm ? u.uid : null, u.display_name)
+            }}
+          >
+            <span className={styles.presenceDot} />
+            <span className={styles.presenceName}>
+              {u.display_name}
+              {isMe && <span className={styles.presenceYou}> (you)</span>}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Room({ room, navigate, session }) {
   const [activeTab, setActiveTab] = useState('chat')
   const [rightPanel, setRightPanel] = useState('ai')
@@ -170,36 +200,6 @@ export default function Room({ room, navigate, session }) {
     }
   }, [mobileUsersOpen])
 
-  const presenceList = (onItemClick) => (
-    presentUsers.length === 0 ? (
-      <p className={styles.emptyPresence}>No one else is here yet!</p>
-    ) : (
-      <div className={styles.presenceList}>
-        {presentUsers.map(u => {
-          const isMe = u.self_key === presenceKeyRef.current
-          const canDm = !isMe && u.authenticated && !!u.uid
-          return (
-            <div
-              key={u.presence_ref}
-              className={`${styles.presenceUser} ${!isMe ? styles.presenceUserClickable : ''}`}
-              onClick={() => {
-                if (isMe) return
-                onItemClick?.()
-                handleOpenDm(canDm ? u.uid : null, u.display_name)
-              }}
-            >
-              <span className={styles.presenceDot} />
-              <span className={styles.presenceName}>
-                {u.display_name}
-                {isMe && <span className={styles.presenceYou}> (you)</span>}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    )
-  )
-
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -246,7 +246,11 @@ export default function Room({ room, navigate, session }) {
                     <span className={styles.dmBadgeLabel}>{unreadDm} new DM{unreadDm > 1 ? 's' : ''}</span>
                   )}
                 </div>
-                {presenceList(() => setMobileUsersOpen(false))}
+                <UserList
+                    users={presentUsers}
+                    selfKey={presenceKeyRef.current}
+                    onUserClick={(uid, name) => { setMobileUsersOpen(false); handleOpenDm(uid, name) }}
+                  />
               </div>
             )}
           </div>
@@ -267,7 +271,11 @@ export default function Room({ room, navigate, session }) {
               <div className={styles.sideLabel}>In this room</div>
               {unreadDm > 0 && <span className={styles.sideDmDot} title={`${unreadDm} unread DM${unreadDm > 1 ? 's' : ''}`} />}
             </div>
-            {presenceList(null)}
+            <UserList
+              users={presentUsers}
+              selfKey={presenceKeyRef.current}
+              onUserClick={handleOpenDm}
+            />
           </div>
 
           <div className={styles.sideCard}>
