@@ -226,7 +226,14 @@
   .layout { grid-template-columns: 1fr; grid-template-rows: auto; }
   .timerRow { grid-column: 1; }
   .sidebar { display: none; }
-  .chatPanel { grid-row: auto; height: 500px; }
+  .chatPanel {
+    grid-row: auto;
+    /* Progressive fallback: static → svh (small viewport) → dvh (shrinks with keyboard) */
+    height: 500px;
+    height: calc(100svh - 155px);
+    height: calc(100dvh - 155px);
+    min-height: 320px;
+  }
   .mobileTabs { display: flex; }
   .mobilePanel { display: block; }
   .mobilePeopleWrap { display: block; }
