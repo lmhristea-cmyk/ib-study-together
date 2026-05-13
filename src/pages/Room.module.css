@@ -226,6 +226,8 @@
   .layout { grid-template-columns: 1fr; grid-template-rows: auto; }
   .timerRow { grid-column: 1; }
   .sidebar { display: none; }
+  /* Move sound widget above the chat panel input row on mobile */
+  .soundWidget { bottom: 80px; right: 16px; }
   .chatPanel {
     grid-row: auto;
     /* Progressive fallback: static → svh (small viewport) → dvh (shrinks with keyboard) */

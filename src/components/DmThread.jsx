@@ -32,7 +32,6 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
       .limit(100)
       .then(({ data, error }) => {
         if (error) console.error('DmThread history error:', error)
-        console.log('DmThread history:', data?.length, error)
         if (data) setMessages(data)
         setLoading(false)
       })
@@ -49,15 +48,11 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
         { event: 'INSERT', schema: 'public', table: 'direct_messages',
           filter: `sender_id=eq.${toUserId}` },
         (payload) => {
-          console.log('DmThread incoming:', payload.new)
           if (payload.new.recipient_id !== fromUserId) return
           addMessage(payload.new)
         }
       )
-      .subscribe((status, err) => {
-        if (err) console.error('DmThread in error:', err)
-        else console.log('DmThread in:', status)
-      })
+      .subscribe()
 
     // Outgoing: my messages confirmed by DB (replaces optimistic entry)
     const outgoing = supabase
@@ -82,10 +77,7 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
           })
         }
       )
-      .subscribe((status, err) => {
-        if (err) console.error('DmThread out error:', err)
-        else console.log('DmThread out:', status)
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(incoming)
@@ -164,7 +156,6 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={onKey}
-          autoFocus
         />
         <button className={styles.sendBtn} onClick={send} disabled={!input.trim()}>↑</button>
       </div>
