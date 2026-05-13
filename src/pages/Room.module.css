@@ -222,19 +222,26 @@
 .muteBtn:hover { color: var(--text-1); border-color: #9CA3AF; }
 
 @media (max-width: 900px) {
-  .page { height: auto; }
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto; }
+  /* Constrain the page to the remaining viewport below the 60px navbar.
+     dvh shrinks when the iOS keyboard opens, so the chatPanel shrinks with it
+     and the inputRow stays visible — no hardcoded pixel offsets needed. */
+  .page {
+    height: calc(100vh - 60px);
+    height: calc(100svh - 60px);
+    height: calc(100dvh - 60px);
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+  /* Keep auto 1fr so the chatPanel row expands to fill whatever the page leaves. */
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .timerRow { grid-column: 1; }
   .sidebar { display: none; }
-  /* Move sound widget above the chat panel input row on mobile */
-  .soundWidget { bottom: 80px; right: 16px; }
+  /* Hide the fixed-position sound widget on mobile — its bottom:24px placement
+     sits directly on top of the inputRow and blocks the send button. */
+  .soundWidget { display: none; }
   .chatPanel {
     grid-row: auto;
-    /* Progressive fallback: static → svh (small viewport) → dvh (shrinks with keyboard) */
-    height: 500px;
-    height: calc(100svh - 155px);
-    height: calc(100dvh - 155px);
-    min-height: 320px;
+    height: auto;
   }
   .mobileTabs { display: flex; }
   .mobilePanel { display: block; }
