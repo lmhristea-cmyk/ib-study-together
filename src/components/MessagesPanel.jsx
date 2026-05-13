@@ -140,47 +140,49 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
     )
   }
 
-  // --- Thread view ---
-  if (activeConv) {
-    return (
-      <DmThread
-        session={session}
-        toUserId={activeConv.userId}
-        toUserName={activeConv.userName}
-        onBack={() => setActiveConv(null)}
-      />
-    )
-  }
-
-  // --- Conversation list ---
+  // Stable root div for all authenticated states — switching the root element type
+  // (div → DmThread → div) inside always-mounted panelVisible caused React to silently
+  // fail the reconciliation, so the thread never appeared. Ternary inside a single root
+  // lets React swap content without touching the root node.
   return (
     <div className={styles.wrap}>
-      {loading && <p className={styles.state}>Loading…</p>}
-      {!loading && convs.length === 0 && (
-        <p className={styles.empty}>
-          No messages yet — click someone's name in the sidebar to start a conversation.
-        </p>
-      )}
-      <div className={styles.list}>
-        {convs.map(conv => (
-          <div
-            key={conv.userId}
-            className={styles.convRow}
-            onClick={() => setActiveConv(conv)}
-          >
-            <span className={styles.avatar}>{conv.userName.charAt(0).toUpperCase()}</span>
-            <div className={styles.convInfo}>
-              <div className={styles.convName}>{conv.userName}</div>
-              {conv.lastMsg && (
-                <div className={styles.convPreview}>{conv.lastMsg.content}</div>
-              )}
-            </div>
-            {conv.lastMsg && (
-              <div className={styles.convTime}>{fmtTime(conv.lastMsg.created_at)}</div>
-            )}
+      {activeConv ? (
+        <DmThread
+          session={session}
+          toUserId={activeConv.userId}
+          toUserName={activeConv.userName}
+          onBack={() => setActiveConv(null)}
+        />
+      ) : (
+        <>
+          {loading && <p className={styles.state}>Loading…</p>}
+          {!loading && convs.length === 0 && (
+            <p className={styles.empty}>
+              No messages yet — click someone's name in the sidebar to start a conversation.
+            </p>
+          )}
+          <div className={styles.list}>
+            {convs.map(conv => (
+              <div
+                key={conv.userId}
+                className={styles.convRow}
+                onClick={() => setActiveConv(conv)}
+              >
+                <span className={styles.avatar}>{conv.userName.charAt(0).toUpperCase()}</span>
+                <div className={styles.convInfo}>
+                  <div className={styles.convName}>{conv.userName}</div>
+                  {conv.lastMsg && (
+                    <div className={styles.convPreview}>{conv.lastMsg.content}</div>
+                  )}
+                </div>
+                {conv.lastMsg && (
+                  <div className={styles.convTime}>{fmtTime(conv.lastMsg.created_at)}</div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   )
 }
