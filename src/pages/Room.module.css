@@ -116,6 +116,9 @@
 }
 .presenceList { display: flex; flex-direction: column; gap: 7px; }
 .presenceUser { display: flex; align-items: center; gap: 7px; }
+.presenceUserClickable { cursor: pointer; border-radius: 5px; padding: 1px 3px; margin: -1px -3px; transition: background 0.15s; }
+.presenceUserClickable:hover { background: #F3F4F6; }
+.presenceUserClickable:hover .presenceName { color: #7C3AED; }
 .presenceDot {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
   background: #22C55E; box-shadow: 0 0 5px rgba(34,197,94,0.5);

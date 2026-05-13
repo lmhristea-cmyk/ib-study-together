@@ -27,7 +27,8 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
       )
       .order('created_at', { ascending: true })
       .limit(100)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('DM load error:', error)
         if (data) setMessages(data)
         setLoading(false)
       })
@@ -81,7 +82,10 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
       .select()
       .single()
 
-    if (!error && data) {
+    if (error) {
+      console.error('DM send error:', error)
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+    } else if (data) {
       setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m))
     }
   }

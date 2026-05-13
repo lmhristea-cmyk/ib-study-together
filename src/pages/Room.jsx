@@ -5,6 +5,9 @@ import LiveChat from '../components/LiveChat'
 import GroupChat from '../components/GroupChat'
 import Library from '../components/Library'
 import { supabase } from '../supabaseClient'
+import DmModal from '../components/DirectMessage'
+import AuthPromptModal from '../components/AuthPromptModal'
+import AuthModal from '../components/AuthModal'
 import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
@@ -44,6 +47,16 @@ export default function Room({ room, navigate, session }) {
   const [presentUsers, setPresentUsers] = useState([])
   const presenceKeyRef = useRef(session?.user?.id ?? crypto.randomUUID())
 
+  const [dmTarget,   setDmTarget]   = useState(null)  // { userId, userName }
+  const [showDmGate, setShowDmGate] = useState(false)
+  const [showDmAuth, setShowDmAuth] = useState(null)  // 'signin' | 'signup' | null
+
+  const handleOpenDm = (targetId, targetName) => {
+    if (!session) { setShowDmGate(true); return }
+    if (!targetId) return
+    setDmTarget({ userId: targetId, userName: targetName })
+  }
+
   useEffect(() => {
     const displayName = session?.user?.user_metadata?.full_name
       || session?.user?.email?.split('@')[0]
@@ -58,7 +71,7 @@ export default function Room({ room, navigate, session }) {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ display_name: displayName, uid: presenceKeyRef.current })
+          await channel.track({ display_name: displayName, uid: presenceKeyRef.current, authenticated: !!session })
         }
       })
 
@@ -137,15 +150,23 @@ export default function Room({ room, navigate, session }) {
               <p className={styles.emptyPresence}>No one else is here yet — share the link to study together!</p>
             ) : (
               <div className={styles.presenceList}>
-                {presentUsers.map(u => (
-                  <div key={u.presence_ref} className={styles.presenceUser}>
-                    <span className={styles.presenceDot} />
-                    <span className={styles.presenceName}>
-                      {u.display_name}
-                      {u.uid === presenceKeyRef.current && <span className={styles.presenceYou}> (you)</span>}
-                    </span>
-                  </div>
-                ))}
+                {presentUsers.map(u => {
+                  const isMe = u.uid === presenceKeyRef.current
+                  const canDm = !isMe && u.authenticated
+                  return (
+                    <div
+                      key={u.presence_ref}
+                      className={`${styles.presenceUser} ${!isMe ? styles.presenceUserClickable : ''}`}
+                      onClick={() => !isMe && handleOpenDm(canDm ? u.uid : null, u.display_name)}
+                    >
+                      <span className={styles.presenceDot} />
+                      <span className={styles.presenceName}>
+                        {u.display_name}
+                        {isMe && <span className={styles.presenceYou}> (you)</span>}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -220,7 +241,7 @@ export default function Room({ room, navigate, session }) {
                 />
               </div>
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
-                <GroupChat roomId={room.id} session={session} />
+                <GroupChat roomId={room.id} session={session} onOpenDm={handleOpenDm} />
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} roomId={room.id} session={session} />
@@ -258,6 +279,36 @@ export default function Room({ room, navigate, session }) {
           </button>
         )}
       </div>
+
+      {dmTarget && session && (
+        <DmModal
+          session={session}
+          toUserId={dmTarget.userId}
+          toUserName={dmTarget.userName}
+          onClose={() => setDmTarget(null)}
+        />
+      )}
+
+      {showDmGate && (
+        <AuthPromptModal
+          onClose={() => setShowDmGate(false)}
+          accentText="Direct Messages"
+          title="Create a free account to send direct messages"
+          body="Sign up to message other students privately and collaborate one-on-one."
+          primaryLabel="Sign up — it's free"
+          onPrimary={() => { setShowDmGate(false); setShowDmAuth('signup') }}
+          secondaryLabel="Sign in"
+          onSecondary={() => { setShowDmGate(false); setShowDmAuth('signin') }}
+        />
+      )}
+
+      {showDmAuth && (
+        <AuthModal
+          initialMode={showDmAuth}
+          onClose={() => setShowDmAuth(null)}
+          onAuth={() => setShowDmAuth(null)}
+        />
+      )}
     </div>
   )
 }
