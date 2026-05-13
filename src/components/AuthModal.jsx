@@ -51,8 +51,8 @@ export default function AuthModal({ onClose, onAuth, initialMode = 'signin' }) {
             </h3>
             <p className={styles.body}>
               {mode === 'signin'
-                ? 'Sign in to get 25 AI Tutor messages per day instead of 10.'
-                : 'Free accounts get 25 AI Tutor messages per day.'}
+                ? 'Sign in to get 10 AI Tutor messages per day instead of 5.'
+                : 'Free accounts get 10 AI Tutor messages per day.'}
             </p>
             <form onSubmit={submit} className={styles.form}>
               <input
