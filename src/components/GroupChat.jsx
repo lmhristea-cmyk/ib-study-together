@@ -23,6 +23,7 @@ export default function GroupChat({ roomId, session, onOpenDm }) {
   const [showGate, setShowGate] = useState(false)
   const [showFullAuth, setShowFullAuth] = useState(null) // 'signin' | 'signup' | null
   const bottomRef = useRef(null)
+  const joinTimeRef = useRef(new Date().toISOString())
 
   const userName = session?.user?.email?.split('@')[0] || 'Guest'
 
@@ -31,6 +32,7 @@ export default function GroupChat({ roomId, session, onOpenDm }) {
       .from('group_messages')
       .select('*')
       .eq('room_id', roomId)
+      .gt('created_at', joinTimeRef.current)
       .order('created_at', { ascending: true })
       .limit(100)
       .then(({ data }) => {
