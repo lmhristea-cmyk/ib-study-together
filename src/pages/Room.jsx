@@ -4,8 +4,8 @@ import PomodoroTimer from '../components/PomodoroTimer'
 import LiveChat from '../components/LiveChat'
 import GroupChat from '../components/GroupChat'
 import Library from '../components/Library'
+import MessagesPanel from '../components/MessagesPanel'
 import { supabase } from '../supabaseClient'
-import DmModal from '../components/DirectMessage'
 import AuthPromptModal from '../components/AuthPromptModal'
 import AuthModal from '../components/AuthModal'
 import styles from './Room.module.css'
@@ -13,14 +13,13 @@ import styles from './Room.module.css'
 const libraryKey = (roomId) => `ib-library-${roomId}`
 
 function UserList({ users, selfKey, onUserClick }) {
-  console.log('[UserList] render — users:', users.length, users)
   if (users.length === 0) {
     return <p className={styles.emptyPresence}>No one else is here yet!</p>
   }
   return (
     <div className={styles.presenceList}>
       {users.map(u => {
-        const isMe = u.self_key === selfKey
+        const isMe  = u.self_key === selfKey
         const canDm = !isMe && u.authenticated && !!u.uid
         return (
           <div
@@ -44,17 +43,16 @@ function UserList({ users, selfKey, onUserClick }) {
 }
 
 export default function Room({ room, navigate, session }) {
-  const [activeTab, setActiveTab] = useState('chat')
-  const [rightPanel, setRightPanel] = useState('ai')
-  const [activeTopic, setActiveTopic] = useState(null)
-  const [topicPrompt, setTopicPrompt] = useState(null)
+  const [activeTab,    setActiveTab]    = useState('chat')
+  const [rightPanel,   setRightPanel]   = useState('ai')
+  const [activeTopic,  setActiveTopic]  = useState(null)
+  const [topicPrompt,  setTopicPrompt]  = useState(null)
 
   const handleTopicClick = (topic) => {
     setActiveTopic(topic)
     setRightPanel('ai')
     setTopicPrompt(`Give me an IB-style practice question on "${topic}" for ${room.subject}. Just the question itself — no answer yet.`)
   }
-
   const handleTopicConsumed = () => setTopicPrompt(null)
 
   const [library, setLibrary] = useState(() => {
@@ -75,58 +73,30 @@ export default function Room({ room, navigate, session }) {
     setLibrary(prev => prev.filter(i => i.id !== id))
   }, [])
 
-  const [presentUsers, setPresentUsers] = useState([])
+  const [presentUsers,  setPresentUsers]  = useState([])
   const presenceKeyRef = useRef(crypto.randomUUID())
 
-  const [dmTarget,   setDmTarget]   = useState(null)  // { userId, userName }
-  const [showDmGate, setShowDmGate] = useState(false)
-  const [showDmAuth, setShowDmAuth] = useState(null)  // 'signin' | 'signup' | null
-  const dmTargetRef = useRef(null)
-
-  const [unreadDm, setUnreadDm] = useState(0)
+  // DM routing: clicking a name sets dmConvTarget and switches to Messages tab
+  const [dmConvTarget,  setDmConvTarget]  = useState(null)  // { userId, userName } | null
+  const [showDmGate,    setShowDmGate]    = useState(false)
+  const [showDmAuth,    setShowDmAuth]    = useState(null)   // 'signin' | 'signup' | null
+  const [unreadDm,      setUnreadDm]      = useState(0)
 
   const handleOpenDm = (targetId, targetName) => {
     if (!session) { setShowDmGate(true); return }
     if (!targetId) return
     setUnreadDm(0)
-    setDmTarget({ userId: targetId, userName: targetName })
+    setRightPanel('messages')
+    setDmConvTarget({ userId: targetId, userName: targetName })
   }
 
-  // Keep dmTargetRef in sync so the notification subscription can check it
-  useEffect(() => {
-    dmTargetRef.current = dmTarget
-  }, [dmTarget])
-
-  // Always-on DM notification subscription (only when logged in)
-  useEffect(() => {
-    if (!session?.user?.id) return
-    const userId = session.user.id
-
-    const notify = supabase
-      .channel(`dm-notify:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `recipient_id=eq.${userId}` },
-        (payload) => {
-          const senderId = payload.new.sender_id
-          const openWith = dmTargetRef.current?.userId
-          if (openWith === senderId) return  // modal is already open for this sender
-          setUnreadDm(prev => prev + 1)
-        }
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(notify) }
-  }, [session?.user?.id])
-
+  // Presence tracking
   useEffect(() => {
     const displayName = session?.user?.user_metadata?.full_name
       || session?.user?.email?.split('@')[0]
       || 'Guest'
 
     const channel = supabase.channel(`room-presence:${room.id}`)
-
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
@@ -142,13 +112,13 @@ export default function Room({ room, navigate, session }) {
           })
         }
       })
-
     return () => { supabase.removeChannel(channel) }
   }, [room.id, session?.user?.id])
 
+  // Ambient sound
   const audioRef = useRef(null)
   const [soundPlaying, setSoundPlaying] = useState(false)
-  const [soundMuted, setSoundMuted] = useState(false)
+  const [soundMuted,   setSoundMuted]   = useState(false)
 
   useEffect(() => {
     const audio = new Audio(tibetanBowl)
@@ -161,13 +131,8 @@ export default function Room({ room, navigate, session }) {
   const toggleSound = () => {
     const audio = audioRef.current
     if (!audio) return
-    if (soundPlaying) {
-      audio.pause()
-      setSoundPlaying(false)
-    } else {
-      audio.play()
-      setSoundPlaying(true)
-    }
+    if (soundPlaying) { audio.pause(); setSoundPlaying(false) }
+    else              { audio.play();  setSoundPlaying(true)  }
   }
 
   const toggleMute = (e) => {
@@ -204,7 +169,6 @@ export default function Room({ room, navigate, session }) {
           </div>
         </div>
         <div className={styles.headerRight}>
-          {/* Mobile-only people button — sheet rendered at body level below */}
           <div className={styles.mobilePeopleWrap}>
             <button
               className={styles.mobilePeopleBtn}
@@ -220,7 +184,6 @@ export default function Room({ room, navigate, session }) {
               {presentUsers.length > 0 && (
                 <span className={styles.mobilePeopleCount}>{presentUsers.length}</span>
               )}
-              {unreadDm > 0 && <span className={styles.dmBadge} />}
             </button>
           </div>
         </div>
@@ -228,25 +191,20 @@ export default function Room({ room, navigate, session }) {
 
       {/* Layout */}
       <div className={styles.layout}>
-        {/* Timer bar — spans all columns */}
         <div className={styles.timerRow}>
           <PomodoroTimer roomId={room.id} />
         </div>
 
-        {/* Left: Users */}
+        {/* Left sidebar */}
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
-            <div className={styles.sideLabelRow}>
-              <div className={styles.sideLabel}>In this room</div>
-              {unreadDm > 0 && <span className={styles.sideDmDot} title={`${unreadDm} unread DM${unreadDm > 1 ? 's' : ''}`} />}
-            </div>
+            <div className={styles.sideLabel}>In this room</div>
             <UserList
               users={presentUsers}
               selfKey={presenceKeyRef.current}
               onUserClick={handleOpenDm}
             />
           </div>
-
           <div className={styles.sideCard}>
             <div className={styles.sideLabel}>Topics</div>
             <div className={styles.topicList}>
@@ -262,10 +220,9 @@ export default function Room({ room, navigate, session }) {
               ))}
             </div>
           </div>
-
         </aside>
 
-        {/* Center: empty fill + mobile tabs */}
+        {/* Center (mobile tabs only) */}
         <main className={styles.center}>
           <div className={styles.mobileTabs}>
             <button
@@ -277,7 +234,7 @@ export default function Room({ room, navigate, session }) {
           </div>
         </main>
 
-        {/* Right: panels */}
+        {/* Right panel */}
         <aside className={styles.chatPanel}>
           <div className={styles.panelSlot}>
             <div className={styles.panelTabs}>
@@ -289,6 +246,15 @@ export default function Room({ room, navigate, session }) {
                 className={`${styles.panelTab} ${rightPanel === 'group' ? styles.panelTabActive : ''}`}
                 onClick={() => setRightPanel('group')}
               >Group Chat</button>
+              <button
+                className={`${styles.panelTab} ${rightPanel === 'messages' ? styles.panelTabActive : ''}`}
+                onClick={() => { setRightPanel('messages'); setUnreadDm(0) }}
+              >
+                Messages
+                {unreadDm > 0 && rightPanel !== 'messages' && (
+                  <span className={styles.dmDot} />
+                )}
+              </button>
               <button
                 className={`${styles.panelTab} ${rightPanel === 'library' ? styles.panelTabActive : ''}`}
                 onClick={() => setRightPanel('library')}
@@ -319,6 +285,16 @@ export default function Room({ room, navigate, session }) {
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
                 <GroupChat roomId={room.id} session={session} onOpenDm={handleOpenDm} />
               </div>
+              {/* MessagesPanel is always mounted so its subscription stays active */}
+              <div className={rightPanel === 'messages' ? styles.panelVisible : styles.panelHidden}>
+                <MessagesPanel
+                  session={session}
+                  isActive={rightPanel === 'messages'}
+                  initialConv={dmConvTarget}
+                  onClearInitialConv={() => setDmConvTarget(null)}
+                  onUnread={() => setUnreadDm(d => d + 1)}
+                />
+              </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} roomId={room.id} session={session} />
               </div>
@@ -336,7 +312,7 @@ export default function Room({ room, navigate, session }) {
         </aside>
       </div>
 
-      {/* Tibetan bowl ambient sound */}
+      {/* Ambient sound */}
       <div className={styles.soundWidget}>
         <button
           className={`${styles.soundBtn} ${soundPlaying ? styles.soundActive : ''}`}
@@ -346,25 +322,13 @@ export default function Room({ room, navigate, session }) {
           {soundPlaying && !soundMuted ? '🔔' : soundPlaying && soundMuted ? '🔇' : '🔕'}
         </button>
         {soundPlaying && (
-          <button
-            className={styles.muteBtn}
-            onClick={toggleMute}
-            title={soundMuted ? 'Unmute' : 'Mute'}
-          >
+          <button className={styles.muteBtn} onClick={toggleMute} title={soundMuted ? 'Unmute' : 'Mute'}>
             {soundMuted ? 'unmute' : 'mute'}
           </button>
         )}
       </div>
 
-      {dmTarget && session && (
-        <DmModal
-          session={session}
-          toUserId={dmTarget.userId}
-          toUserName={dmTarget.userName}
-          onClose={() => setDmTarget(null)}
-        />
-      )}
-
+      {/* Auth gate for guests who try to DM */}
       {showDmGate && (
         <AuthPromptModal
           onClose={() => setShowDmGate(false)}
@@ -377,7 +341,6 @@ export default function Room({ room, navigate, session }) {
           onSecondary={() => { setShowDmGate(false); setShowDmAuth('signin') }}
         />
       )}
-
       {showDmAuth && (
         <AuthModal
           initialMode={showDmAuth}
@@ -386,17 +349,12 @@ export default function Room({ room, navigate, session }) {
         />
       )}
 
-      {/* Mobile people bottom sheet — fixed overlay avoids iOS flex/overflow clipping */}
+      {/* Mobile people bottom sheet */}
       {mobileUsersOpen && (
         <div className={styles.mobileSheet} onClick={() => setMobileUsersOpen(false)}>
           <div className={styles.mobileSheetContent} onClick={e => e.stopPropagation()}>
             <div className={styles.mobileSheetHandle} />
-            <div className={styles.mobileSheetLabel}>
-              In this room
-              {unreadDm > 0 && (
-                <span className={styles.dmBadgeLabel}>{unreadDm} new DM{unreadDm > 1 ? 's' : ''}</span>
-              )}
-            </div>
+            <div className={styles.mobileSheetLabel}>In this room</div>
             <UserList
               users={presentUsers}
               selfKey={presenceKeyRef.current}
