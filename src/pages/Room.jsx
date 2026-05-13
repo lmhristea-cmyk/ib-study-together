@@ -4,6 +4,7 @@ import PomodoroTimer from '../components/PomodoroTimer'
 import LiveChat from '../components/LiveChat'
 import GroupChat from '../components/GroupChat'
 import Library from '../components/Library'
+import { supabase } from '../supabaseClient'
 import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
@@ -39,6 +40,30 @@ export default function Room({ room, navigate, session }) {
   const deleteFromLibrary = useCallback((id) => {
     setLibrary(prev => prev.filter(i => i.id !== id))
   }, [])
+
+  const [presentUsers, setPresentUsers] = useState([])
+  const presenceKeyRef = useRef(session?.user?.id ?? crypto.randomUUID())
+
+  useEffect(() => {
+    const displayName = session?.user?.user_metadata?.full_name
+      || session?.user?.email?.split('@')[0]
+      || 'Guest'
+
+    const channel = supabase.channel(`room-presence:${room.id}`)
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        setPresentUsers(Object.values(state).flatMap(arr => arr))
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ display_name: displayName, uid: presenceKeyRef.current })
+        }
+      })
+
+    return () => { supabase.removeChannel(channel) }
+  }, [room.id, session?.user?.id])
 
   const audioRef = useRef(null)
   const [soundPlaying, setSoundPlaying] = useState(false)
@@ -108,7 +133,21 @@ export default function Room({ room, navigate, session }) {
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
             <div className={styles.sideLabel}>In this room</div>
-            <p className={styles.emptyPresence}>No one else is here yet — share the link to study together!</p>
+            {presentUsers.length === 0 ? (
+              <p className={styles.emptyPresence}>No one else is here yet — share the link to study together!</p>
+            ) : (
+              <div className={styles.presenceList}>
+                {presentUsers.map(u => (
+                  <div key={u.presence_ref} className={styles.presenceUser}>
+                    <span className={styles.presenceDot} />
+                    <span className={styles.presenceName}>
+                      {u.display_name}
+                      {u.uid === presenceKeyRef.current && <span className={styles.presenceYou}> (you)</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className={styles.sideCard}>
