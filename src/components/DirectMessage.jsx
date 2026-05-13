@@ -12,8 +12,6 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
     || session.user.email?.split('@')[0]
     || 'User'
 
-  const conversationId = [fromUserId, toUserId].sort().join('_')
-
   const [messages, setMessages] = useState([])
   const [input,    setInput]    = useState('')
   const [loading,  setLoading]  = useState(true)
@@ -23,7 +21,10 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
     supabase
       .from('direct_messages')
       .select('*')
-      .eq('conversation_id', conversationId)
+      .or(
+        `and(sender_id.eq.${fromUserId},recipient_id.eq.${toUserId}),` +
+        `and(sender_id.eq.${toUserId},recipient_id.eq.${fromUserId})`
+      )
       .order('created_at', { ascending: true })
       .limit(100)
       .then(({ data }) => {
@@ -31,13 +32,15 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
         setLoading(false)
       })
 
+    // Listen for messages sent to me from this specific user
     const channel = supabase
-      .channel(`dm:${conversationId}`)
+      .channel(`dm:${fromUserId}:${toUserId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `conversation_id=eq.${conversationId}` },
+          filter: `recipient_id=eq.${fromUserId}` },
         (payload) => {
+          if (payload.new.sender_id !== toUserId) return
           setMessages(prev =>
             prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new]
           )
@@ -46,7 +49,7 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [conversationId])
+  }, [fromUserId, toUserId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -59,12 +62,10 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
 
     const optimistic = {
       id: `opt-${Date.now()}`,
-      conversation_id: conversationId,
-      from_user_id: fromUserId,
-      from_user_name: fromUserName,
-      to_user_id: toUserId,
-      to_user_name: toUserName,
-      text,
+      sender_id: fromUserId,
+      recipient_id: toUserId,
+      sender_display_name: fromUserName,
+      content: text,
       created_at: new Date().toISOString(),
     }
     setMessages(prev => [...prev, optimistic])
@@ -72,12 +73,10 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
     const { data, error } = await supabase
       .from('direct_messages')
       .insert({
-        conversation_id: conversationId,
-        from_user_id: fromUserId,
-        from_user_name: fromUserName,
-        to_user_id: toUserId,
-        to_user_name: toUserName,
-        text,
+        sender_id: fromUserId,
+        recipient_id: toUserId,
+        sender_display_name: fromUserName,
+        content: text,
       })
       .select()
       .single()
@@ -112,13 +111,13 @@ export default function DmModal({ session, toUserId, toUserName, onClose }) {
             <p className={styles.stateText}>No messages yet. Say hello!</p>
           )}
           {messages.map(msg => {
-            const isMe = msg.from_user_id === fromUserId
+            const isMe = msg.sender_id === fromUserId
             return (
               <div key={msg.id} className={`${styles.row} ${isMe ? styles.rowMe : styles.rowThem}`}>
                 {!isMe && <span className={styles.avatar}>{toUserName.charAt(0).toUpperCase()}</span>}
                 <div className={styles.bubbleWrap}>
                   <div className={`${styles.bubble} ${isMe ? styles.bubbleMe : styles.bubbleThem}`}>
-                    {msg.text}
+                    {msg.content}
                   </div>
                   <span className={styles.ts}>{fmt(msg.created_at)}</span>
                 </div>
