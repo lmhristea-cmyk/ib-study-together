@@ -50,12 +50,44 @@ export default function Room({ room, navigate, session }) {
   const [dmTarget,   setDmTarget]   = useState(null)  // { userId, userName }
   const [showDmGate, setShowDmGate] = useState(false)
   const [showDmAuth, setShowDmAuth] = useState(null)  // 'signin' | 'signup' | null
+  const dmTargetRef = useRef(null)
+
+  const [unreadDm, setUnreadDm] = useState(0)
 
   const handleOpenDm = (targetId, targetName) => {
     if (!session) { setShowDmGate(true); return }
     if (!targetId) return
+    setUnreadDm(0)
     setDmTarget({ userId: targetId, userName: targetName })
   }
+
+  // Keep dmTargetRef in sync so the notification subscription can check it
+  useEffect(() => {
+    dmTargetRef.current = dmTarget
+  }, [dmTarget])
+
+  // Always-on DM notification subscription (only when logged in)
+  useEffect(() => {
+    if (!session?.user?.id) return
+    const userId = session.user.id
+
+    const notify = supabase
+      .channel(`dm-notify:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'direct_messages',
+          filter: `recipient_id=eq.${userId}` },
+        (payload) => {
+          const senderId = payload.new.sender_id
+          const openWith = dmTargetRef.current?.userId
+          if (openWith === senderId) return  // modal is already open for this sender
+          setUnreadDm(prev => prev + 1)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(notify) }
+  }, [session?.user?.id])
 
   useEffect(() => {
     const displayName = session?.user?.user_metadata?.full_name
@@ -119,6 +151,55 @@ export default function Room({ room, navigate, session }) {
     setLibrary(prev => [item, ...prev])
   }, [])
 
+  // Mobile people dropdown
+  const [mobileUsersOpen, setMobileUsersOpen] = useState(false)
+  const mobileUsersRef = useRef(null)
+
+  useEffect(() => {
+    if (!mobileUsersOpen) return
+    const handler = (e) => {
+      if (mobileUsersRef.current && !mobileUsersRef.current.contains(e.target)) {
+        setMobileUsersOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
+  }, [mobileUsersOpen])
+
+  const presenceList = (onItemClick) => (
+    presentUsers.length === 0 ? (
+      <p className={styles.emptyPresence}>No one else is here yet!</p>
+    ) : (
+      <div className={styles.presenceList}>
+        {presentUsers.map(u => {
+          const isMe = u.self_key === presenceKeyRef.current
+          const canDm = !isMe && u.authenticated && !!u.uid
+          return (
+            <div
+              key={u.presence_ref}
+              className={`${styles.presenceUser} ${!isMe ? styles.presenceUserClickable : ''}`}
+              onClick={() => {
+                if (isMe) return
+                onItemClick?.()
+                handleOpenDm(canDm ? u.uid : null, u.display_name)
+              }}
+            >
+              <span className={styles.presenceDot} />
+              <span className={styles.presenceName}>
+                {u.display_name}
+                {isMe && <span className={styles.presenceYou}> (you)</span>}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  )
+
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -137,7 +218,39 @@ export default function Room({ room, navigate, session }) {
             </div>
           </div>
         </div>
-        <div className={styles.headerRight} />
+        <div className={styles.headerRight}>
+          {/* Mobile-only people button */}
+          <div className={styles.mobilePeopleWrap} ref={mobileUsersRef}>
+            <button
+              className={styles.mobilePeopleBtn}
+              onClick={() => setMobileUsersOpen(o => !o)}
+              title="Who's in this room"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              {presentUsers.length > 0 && (
+                <span className={styles.mobilePeopleCount}>{presentUsers.length}</span>
+              )}
+              {unreadDm > 0 && <span className={styles.dmBadge} />}
+            </button>
+
+            {mobileUsersOpen && (
+              <div className={styles.mobilePeopleDropdown}>
+                <div className={styles.mobilePeopleHeader}>
+                  In this room
+                  {unreadDm > 0 && (
+                    <span className={styles.dmBadgeLabel}>{unreadDm} new DM{unreadDm > 1 ? 's' : ''}</span>
+                  )}
+                </div>
+                {presenceList(() => setMobileUsersOpen(false))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Layout */}
@@ -150,30 +263,11 @@ export default function Room({ room, navigate, session }) {
         {/* Left: Users */}
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
-            <div className={styles.sideLabel}>In this room</div>
-            {presentUsers.length === 0 ? (
-              <p className={styles.emptyPresence}>No one else is here yet — share the link to study together!</p>
-            ) : (
-              <div className={styles.presenceList}>
-                {presentUsers.map(u => {
-                  const isMe = u.self_key === presenceKeyRef.current
-                  const canDm = !isMe && u.authenticated && !!u.uid
-                  return (
-                    <div
-                      key={u.presence_ref}
-                      className={`${styles.presenceUser} ${!isMe ? styles.presenceUserClickable : ''}`}
-                      onClick={() => !isMe && handleOpenDm(canDm ? u.uid : null, u.display_name)}
-                    >
-                      <span className={styles.presenceDot} />
-                      <span className={styles.presenceName}>
-                        {u.display_name}
-                        {isMe && <span className={styles.presenceYou}> (you)</span>}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            <div className={styles.sideLabelRow}>
+              <div className={styles.sideLabel}>In this room</div>
+              {unreadDm > 0 && <span className={styles.sideDmDot} title={`${unreadDm} unread DM${unreadDm > 1 ? 's' : ''}`} />}
+            </div>
+            {presenceList(null)}
           </div>
 
           <div className={styles.sideCard}>
