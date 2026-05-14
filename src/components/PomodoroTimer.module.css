@@ -58,3 +58,10 @@
   .time { font-size: 13px; }
   .footer { margin-left: 0; }
 }
+
+/* Mobile: move tabs onto their own full-width row so all 3 labels fit on one line */
+@media (max-width: 900px) {
+  .wrap { flex-wrap: wrap; gap: 6px 8px; padding: 6px 10px; }
+  .tabs { width: 100%; order: -1; gap: 4px; }
+  .tab { flex: 1; text-align: center; font-size: 11px; padding: 4px 0; }
+}
