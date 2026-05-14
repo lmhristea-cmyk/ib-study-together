@@ -3,7 +3,6 @@ import styles from './Library.module.css'
 import RoomLibrary from './RoomLibrary'
 import AuthPromptModal from './AuthPromptModal'
 import AuthModal from './AuthModal'
-import { supabase } from '../supabaseClient'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -283,7 +282,7 @@ const VIEW_TABS = [
   { value: 'ai',      label: 'AI Saved' },
 ]
 
-export default function Library({ items, onDelete, onUpload, roomId, session }) {
+export default function Library({ items, onDelete, onUpload, roomId, session, roomLibraryItems = [], onShareToRoom, onDeleteRoomItem }) {
   const [query,        setQuery]        = useState('')
   const [view,         setView]         = useState('uploads')
   const [sort,         setSort]         = useState('newest')
@@ -293,18 +292,21 @@ export default function Library({ items, onDelete, onUpload, roomId, session }) 
   const [showShareModal, setShowShareModal] = useState(null)
   const fileRef = useRef(null)
 
-  const handleShareToRoom = async (item) => {
+  const handleShareToRoom = (item) => {
     if (!session) { setShowShareGate(true); return }
     const displayName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
-    const { error } = await supabase.from('room_library').insert({
-      room_id: roomId,
+    const sharedItem = {
+      id: Date.now(),
       user_id: session.user.id,
       user_display_name: displayName,
       type: 'ai_response',
       title: getTitle(item),
       content: item.content,
-    })
-    if (!error) setSharedIds(prev => new Set([...prev, item.id]))
+      subject: item.subject,
+      created_at: new Date().toISOString(),
+    }
+    onShareToRoom?.(sharedItem)
+    setSharedIds(prev => new Set([...prev, item.id]))
   }
 
   const openShareAuth = (mode) => { setShowShareGate(false); setShowShareModal(mode) }
@@ -402,7 +404,7 @@ export default function Library({ items, onDelete, onUpload, roomId, session }) 
         {/* Room Library */}
         {roomId && (
           <div className={styles.roomSection}>
-            <RoomLibrary roomId={roomId} session={session} />
+            <RoomLibrary items={roomLibraryItems} session={session} onDeleteItem={onDeleteRoomItem} />
           </div>
         )}
       </div>
