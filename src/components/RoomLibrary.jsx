@@ -100,8 +100,9 @@ function ContentPreview({ content, expanded }) {
 
 function RoomLibraryCard({ item, currentUserId, onDelete }) {
   const [expanded, setExpanded] = useState(false)
-  const isOwn = currentUserId && item.user_id === currentUserId
-  const body  = item.content
+  const isOwn    = currentUserId && item.user_id === currentUserId
+  const isUpload = item.type === 'upload'
+  const body     = !isUpload && item.content
     ? item.content.split('\n').slice(item.content.split('\n').findIndex(l => l.trim() !== '') + 1).join('\n')
     : ''
   const isLong = body.length > 280
@@ -110,7 +111,9 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <div className={styles.cardMeta}>
-          <span className={`${styles.badge} ${styles.badgePurple}`}>AI Response</span>
+          <span className={`${styles.badge} ${isUpload ? styles.badgeBlue : styles.badgePurple}`}>
+            {isUpload ? 'Upload' : 'AI Response'}
+          </span>
           <span className={styles.sharedBy}>by {item.user_display_name}</span>
           <span className={styles.dot}>·</span>
           <span className={styles.date}>{fmtDate(item.created_at)}</span>
@@ -124,7 +127,13 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
 
       <p className={styles.cardTitle}>{item.title}</p>
 
-      {item.content && (
+      {isUpload && item.file_url && (
+        <a href={item.file_url} target="_blank" rel="noreferrer" className={styles.fileLink}>
+          View / Download ↗
+        </a>
+      )}
+
+      {!isUpload && item.content && (
         <>
           <ContentPreview content={item.content} expanded={expanded} />
           {isLong && (

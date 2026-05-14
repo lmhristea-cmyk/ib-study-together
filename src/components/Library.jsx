@@ -3,6 +3,7 @@ import styles from './Library.module.css'
 import RoomLibrary from './RoomLibrary'
 import AuthPromptModal from './AuthPromptModal'
 import AuthModal from './AuthModal'
+import { supabase } from '../supabaseClient'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -142,6 +143,15 @@ function readAsDataUrl(file) {
   })
 }
 
+function dataUrlToBlob(dataUrl) {
+  const [header, b64] = dataUrl.split(',')
+  const mime = (header.match(/:(.*?);/) || [])[1] || 'application/octet-stream'
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
 // ── Export single response ────────────────────────────────────────────────────
 
 function exportResponseAsPDF(item) {
@@ -196,7 +206,7 @@ function exportResponseAsPDF(item) {
 
 // ── Cards ─────────────────────────────────────────────────────────────────────
 
-function LibraryCard({ item, onDelete, onShareToRoom, isShared }) {
+function LibraryCard({ item, onDelete, onShareToRoom, isShared, isSharing }) {
   const [expanded, setExpanded] = useState(false)
   const isUpload = item.type === 'upload'
   const isImage  = isUpload && item.mediaType?.startsWith('image/')
@@ -236,6 +246,17 @@ function LibraryCard({ item, onDelete, onShareToRoom, isShared }) {
           <a href={item.dataUrl} target="_blank" rel="noreferrer" className={styles.docRow}>
             <DocIcon /><span className={styles.docName}>Open file ↗</span>
           </a>
+        )}
+        {isUpload && onShareToRoom && (
+          <div className={styles.cardActions}>
+            <button
+              className={`${styles.shareBtn} ${isShared ? styles.shareBtnDone : ''}`}
+              onClick={() => !isShared && !isSharing && onShareToRoom(item)}
+              disabled={isShared || isSharing}
+            >
+              <ShareIcon /> {isShared ? 'Shared ✓' : isSharing ? 'Sharing…' : 'Share to Room'}
+            </button>
+          </div>
         )}
         {!isUpload && (
           <>
@@ -288,14 +309,48 @@ export default function Library({ items, onDelete, onUpload, roomId, session, ro
   const [sort,         setSort]         = useState('newest')
   const [uploading,    setUploading]    = useState(false)
   const [sharedIds,    setSharedIds]    = useState(new Set())
+  const [sharingId,    setSharingId]    = useState(null)
   const [showShareGate,  setShowShareGate]  = useState(false)
   const [showShareModal, setShowShareModal] = useState(null)
   const fileRef = useRef(null)
 
-  const handleShareToRoom = (item) => {
+  const handleShareToRoom = async (item) => {
     if (!session) { setShowShareGate(true); return }
     const displayName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
-    const sharedItem = {
+
+    if (item.type === 'upload') {
+      setSharingId(item.id)
+      try {
+        const blob = dataUrlToBlob(item.dataUrl)
+        const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const path = `shared/${roomId}/${Date.now()}-${safeName}`
+        const { error: storageErr } = await supabase.storage
+          .from('room-library-files')
+          .upload(path, blob, { contentType: item.mediaType, upsert: false })
+        if (storageErr) throw storageErr
+        const { data: { publicUrl } } = supabase.storage.from('room-library-files').getPublicUrl(path)
+        onShareToRoom?.({
+          id: Date.now(),
+          user_id: session.user.id,
+          user_display_name: displayName,
+          type: 'upload',
+          title: item.name,
+          mediaType: item.mediaType,
+          file_url: publicUrl,
+          content: null,
+          subject: null,
+          created_at: new Date().toISOString(),
+        })
+        setSharedIds(prev => new Set([...prev, item.id]))
+      } catch (err) {
+        console.error('Share upload failed:', err)
+      } finally {
+        setSharingId(null)
+      }
+      return
+    }
+
+    onShareToRoom?.({
       id: Date.now(),
       user_id: session.user.id,
       user_display_name: displayName,
@@ -304,8 +359,7 @@ export default function Library({ items, onDelete, onUpload, roomId, session, ro
       content: item.content,
       subject: item.subject,
       created_at: new Date().toISOString(),
-    }
-    onShareToRoom?.(sharedItem)
+    })
     setSharedIds(prev => new Set([...prev, item.id]))
   }
 
@@ -396,6 +450,7 @@ export default function Library({ items, onDelete, onUpload, roomId, session, ro
                 onDelete={onDelete}
                 onShareToRoom={roomId ? handleShareToRoom : undefined}
                 isShared={sharedIds.has(item.id)}
+                isSharing={sharingId === item.id}
               />
             ))}
           </div>
