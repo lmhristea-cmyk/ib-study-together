@@ -323,7 +323,7 @@ export default function Room({ room, navigate, session }) {
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} roomId={room.id} session={session} />
               </div>
               <div className={rightPanel === 'resources' ? styles.panelVisible : styles.panelHidden}>
-                <IBResources subjectId={room.subjectId} subject={room.subject} />
+                <IBResources subject={room.subject} />
               </div>
               <div className={rightPanel === 'ebooks' ? styles.panelVisible : styles.panelHidden}>
                 <div className={styles.ebooksEmpty}>

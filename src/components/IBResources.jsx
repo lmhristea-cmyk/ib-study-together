@@ -3,63 +3,6 @@ import styles from './IBResources.module.css'
 const SAMPLE_PAPERS_URL =
   'https://www.ibo.org/programmes/diploma-programme/assessment-and-exams/sample-exam-papers/'
 
-const BASE = 'https://www.ibo.org/programmes/diploma-programme/curriculum/'
-
-// Maps every subjectId in STUDY_ROOMS to the corresponding ibo.org subject-guide page.
-const GUIDE_URLS = {
-  // Group 1 — Language A Literature
-  english_a_lit_hl:      BASE + 'language-and-literature/studies-in-language-and-literature/',
-  english_a_lit_sl:      BASE + 'language-and-literature/studies-in-language-and-literature/',
-  french_a_lit_hl:       BASE + 'language-and-literature/studies-in-language-and-literature/',
-  french_a_lit_sl:       BASE + 'language-and-literature/studies-in-language-and-literature/',
-
-  // Group 1 — Language A Language & Literature
-  english_a_lang_lit_hl: BASE + 'language-and-literature/language-a-language-and-literature/',
-  english_a_lang_lit_sl: BASE + 'language-and-literature/language-a-language-and-literature/',
-  french_a_lang_lit_hl:  BASE + 'language-and-literature/language-a-language-and-literature/',
-  french_a_lang_lit_sl:  BASE + 'language-and-literature/language-a-language-and-literature/',
-  spanish_a_lang_lit_hl: BASE + 'language-and-literature/language-a-language-and-literature/',
-  spanish_a_lang_lit_sl: BASE + 'language-and-literature/language-a-language-and-literature/',
-
-  // Group 2 — Language B
-  spanish_b_hl: BASE + 'language-acquisition/language-b/',
-  spanish_b_sl: BASE + 'language-acquisition/language-b/',
-
-  // Group 3 — Individuals & Societies
-  economics_hl:       BASE + 'individuals-and-societies/economics/',
-  economics_sl:       BASE + 'individuals-and-societies/economics/',
-  geography_hl:       BASE + 'individuals-and-societies/geography/',
-  geography_sl:       BASE + 'individuals-and-societies/geography/',
-  global_politics_hl: BASE + 'individuals-and-societies/global-politics/',
-  global_politics_sl: BASE + 'individuals-and-societies/global-politics/',
-  history_hl:         BASE + 'individuals-and-societies/history/',
-  history_sl:         BASE + 'individuals-and-societies/history/',
-
-  // Group 4 — Sciences
-  biology_hl:   BASE + 'sciences/biology/',
-  biology_sl:   BASE + 'sciences/biology/',
-  chemistry_hl: BASE + 'sciences/chemistry/',
-  chemistry_sl: BASE + 'sciences/chemistry/',
-  physics_hl:   BASE + 'sciences/physics/',
-  physics_sl:   BASE + 'sciences/physics/',
-  ess_hl:       BASE + 'sciences/environmental-systems-and-societies/',
-  ess_sl:       BASE + 'sciences/environmental-systems-and-societies/',
-
-  // Group 5 — Mathematics
-  math_aa_hl: BASE + 'mathematics/mathematics-analysis-and-approaches/',
-  math_aa_sl: BASE + 'mathematics/mathematics-analysis-and-approaches/',
-  math_ai_sl: BASE + 'mathematics/mathematics-applications-and-interpretation/',
-
-  // Group 6 — Computer Science
-  computer_science_hl: BASE + 'sciences/computer-science/',
-  computer_science_sl: BASE + 'sciences/computer-science/',
-
-  // Core
-  extended_essay: BASE + 'extended-essay/',
-  tok:            BASE + 'theory-of-knowledge/',
-  cas:            BASE + 'creativity-activity-service/',
-}
-
 function ExternalLinkIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -84,9 +27,7 @@ function ResourceCard({ icon, title, description, url }) {
   )
 }
 
-export default function IBResources({ subjectId, subject }) {
-  const guideUrl = GUIDE_URLS[subjectId] || null
-
+export default function IBResources({ subject }) {
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
@@ -101,14 +42,6 @@ export default function IBResources({ subjectId, subject }) {
           description="Past papers and markschemes from the IB — use these to practise under exam conditions"
           url={SAMPLE_PAPERS_URL}
         />
-        {guideUrl && (
-          <ResourceCard
-            icon="📘"
-            title="Subject Guide"
-            description={`Official IB curriculum guide for ${subject} — syllabus, assessment details and command terms`}
-            url={guideUrl}
-          />
-        )}
       </div>
 
       <div className={styles.note}>
