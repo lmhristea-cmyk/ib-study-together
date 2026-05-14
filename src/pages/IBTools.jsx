@@ -21,7 +21,8 @@ function useNow() {
 function pad(n) { return String(n).padStart(2, '0') }
 
 function CountdownCard({ label, date, note, now }) {
-  const target = new Date(date)
+  const [y, m, d] = date.split('-').map(Number)
+  const target = new Date(y, m - 1, d)
   const diff   = target - now
   const passed = diff <= 0
 
