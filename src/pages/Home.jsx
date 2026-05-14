@@ -53,19 +53,6 @@ export default function Home({ navigate }) {
             </button>
           </div>
         </div>
-
-        {/* App screenshot mockup */}
-        <div className={styles.mockupWrap}>
-          <div className={styles.mockupChrome}>
-            <div className={styles.mockupDots}>
-              <span className={styles.mockupDot} style={{ background: '#FF5F57' }} />
-              <span className={styles.mockupDot} style={{ background: '#FFBD2E' }} />
-              <span className={styles.mockupDot} style={{ background: '#28CA41' }} />
-            </div>
-            <div className={styles.mockupUrlBar}>ibstudytogether.com/room</div>
-          </div>
-          <img src="/app-screenshot.svg" alt="IB Study Together study room" className={styles.mockupImg} />
-        </div>
       </section>
 
       {/* Sustainability */}

@@ -3,7 +3,7 @@
 /* Hero */
 .hero {
   position: relative; text-align: center;
-  padding: 60px 0 0;
+  padding: 80px 0 60px; overflow: hidden;
 }
 .heroBg {
   position: absolute; inset: 0; pointer-events: none;
@@ -26,29 +26,7 @@
   font-size: 18px; color: #6B7280; line-height: 1.6;
   margin-bottom: 32px; max-width: 520px; margin-left: auto; margin-right: auto;
 }
-.heroCtas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 48px; }
-
-/* Browser mockup */
-.mockupWrap {
-  max-width: 960px; margin: 0 auto;
-  border-radius: 12px 12px 0 0; overflow: hidden;
-  box-shadow: 0 -4px 0 rgba(0,0,0,0.04), 0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06);
-  border: 1px solid #E5E7EB; border-bottom: none;
-}
-.mockupChrome {
-  background: #F3F4F6; padding: 10px 16px;
-  display: flex; align-items: center; gap: 12px;
-  border-bottom: 1px solid #E5E7EB;
-}
-.mockupDots { display: flex; gap: 6px; }
-.mockupDot { width: 10px; height: 10px; border-radius: 50%; display: block; }
-.mockupUrlBar {
-  flex: 1; background: #FFFFFF; border-radius: 6px;
-  border: 1px solid #E5E7EB; height: 24px; max-width: 340px;
-  font-size: 11px; color: #9CA3AF;
-  display: flex; align-items: center; padding: 0 10px;
-}
-.mockupImg { display: block; width: 100%; height: auto; }
+.heroCtas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
 
 /* Buttons */
 .btnPrimary {
