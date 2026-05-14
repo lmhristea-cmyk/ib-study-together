@@ -203,7 +203,13 @@ export default function Room({ room, navigate, session }) {
       {/* Layout */}
       <div className={styles.layout}>
         <div className={styles.timerRow}>
-          <PomodoroTimer roomId={room.id} />
+          <PomodoroTimer
+            roomId={room.id}
+            soundPlaying={soundPlaying}
+            soundMuted={soundMuted}
+            onToggleSound={toggleSound}
+            onToggleMute={toggleMute}
+          />
         </div>
 
         {/* Left sidebar */}
@@ -323,22 +329,6 @@ export default function Room({ room, navigate, session }) {
             </div>
           </div>
         </aside>
-      </div>
-
-      {/* Ambient sound */}
-      <div className={styles.soundWidget}>
-        <button
-          className={`${styles.soundBtn} ${soundPlaying ? styles.soundActive : ''}`}
-          onClick={toggleSound}
-          title={soundPlaying ? 'Stop ambient sound' : 'Play ambient sound'}
-        >
-          {soundPlaying && !soundMuted ? '🔔' : soundPlaying && soundMuted ? '🔇' : '🔕'}
-        </button>
-        {soundPlaying && (
-          <button className={styles.muteBtn} onClick={toggleMute} title={soundMuted ? 'Unmute' : 'Mute'}>
-            {soundMuted ? 'unmute' : 'mute'}
-          </button>
-        )}
       </div>
 
       {/* Auth gate for guests who try to DM */}

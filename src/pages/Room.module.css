@@ -197,30 +197,6 @@
 .mobileTabActive { background: rgba(139,92,246,0.15); border-color: var(--purple-500); color: var(--purple-300); }
 .mobilePanel { margin-top: 12px; display: none; }
 
-/* Ambient sound widget */
-.soundWidget {
-  position: fixed; bottom: 24px; right: 24px; z-index: 50;
-  display: flex; align-items: center; gap: 6px;
-}
-.soundBtn {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: #FFFFFF; border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: box-shadow 0.15s, border-color 0.15s;
-}
-.soundBtn:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); border-color: #9CA3AF; }
-.soundActive { border-color: #22C55E; box-shadow: 0 2px 8px rgba(34,197,94,0.25); }
-.muteBtn {
-  background: #FFFFFF; border: 1px solid var(--border);
-  border-radius: 99px; padding: 4px 10px;
-  font-size: 11px; font-weight: 500; color: var(--text-3);
-  cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  transition: all 0.15s;
-}
-.muteBtn:hover { color: var(--text-1); border-color: #9CA3AF; }
-
 @media (max-width: 900px) {
   /* Constrain the page height so every flex child can fill remaining space.
      dvh shrinks when the iOS keyboard opens — the chatPanel and inputRow
@@ -238,7 +214,6 @@
   .layout { display: flex; flex-direction: column; }
   .timerRow { flex-shrink: 0; }
   .sidebar { display: none; }
-  .soundWidget { display: none; }
   .chatPanel {
     flex: 1;
     min-height: 0;

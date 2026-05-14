@@ -13,7 +13,7 @@ function formatTime(seconds) {
   return `${m}:${s}`
 }
 
-export default function PomodoroTimer({ roomId }) {
+export default function PomodoroTimer({ roomId, soundPlaying, soundMuted, onToggleSound, onToggleMute }) {
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [timeLeft, setTimeLeft] = useState(PHASES[0].duration)
   const [running, setRunning] = useState(false)
@@ -108,6 +108,22 @@ export default function PomodoroTimer({ roomId }) {
           {running ? 'Pause' : 'Start'}
         </button>
         <button className={styles.ctrlBtn} onClick={advance} title="Skip">⏭</button>
+        {onToggleSound && (
+          <>
+            <button
+              className={`${styles.ctrlBtn} ${styles.ctrlSound} ${soundPlaying ? styles.ctrlSoundOn : ''}`}
+              onClick={onToggleSound}
+              title={soundPlaying ? 'Stop ambient sound' : 'Play ambient sound'}
+            >
+              {soundPlaying && !soundMuted ? '🔔' : soundPlaying && soundMuted ? '🔇' : '🔕'}
+            </button>
+            {soundPlaying && (
+              <button className={`${styles.ctrlBtn} ${styles.ctrlSound}`} onClick={onToggleMute} title={soundMuted ? 'Unmute' : 'Mute'}>
+                {soundMuted ? 'unmute' : 'mute'}
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <div className={styles.footer}>

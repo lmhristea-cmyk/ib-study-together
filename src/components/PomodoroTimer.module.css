@@ -34,6 +34,8 @@
 .ctrlStart:hover { background: #1F2937; }
 .ctrlPause { background: var(--bg-card); color: var(--text-2); border: 1px solid var(--border); }
 .ctrlPause:hover { background: var(--bg-1); }
+.ctrlSound { font-size: 13px; }
+.ctrlSoundOn { border-color: #22C55E; color: #16A34A; }
 
 .footer { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 .pomodoros { display: flex; gap: 2px; }
