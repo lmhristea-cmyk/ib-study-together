@@ -280,6 +280,7 @@ export default function Room({ room, navigate, session }) {
                   onTopicConsumed={handleTopicConsumed}
                   session={session}
                   roomId={room.id}
+                  activeTopic={activeTopic}
                 />
               </div>
               <div className={rightPanel === 'group' ? styles.panelVisible : styles.panelHidden}>
