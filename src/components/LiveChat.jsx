@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import styles from './LiveChat.module.css'
 import AuthModal from './AuthModal'
 import AuthPromptModal from './AuthPromptModal'
@@ -492,18 +494,12 @@ function PaperclipIcon() {
 }
 
 function MessageContent({ content }) {
-  const parts = content.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
   return (
-    <p className={styles.msgText}>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**'))
-          return <strong key={i}>{part.slice(2, -2)}</strong>
-        if (part.startsWith('`') && part.endsWith('`'))
-          return <code key={i} className={styles.inlineCode}>{part.slice(1, -1)}</code>
-        return part.split('\n').map((line, j, arr) => (
-          <span key={`${i}-${j}`}>{line}{j < arr.length - 1 ? <br /> : null}</span>
-        ))
-      })}
-    </p>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      className={styles.markdown}
+    >
+      {content}
+    </ReactMarkdown>
   )
 }
