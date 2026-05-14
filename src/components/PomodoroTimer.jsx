@@ -108,25 +108,23 @@ export default function PomodoroTimer({ roomId, soundPlaying, soundMuted, onTogg
           {running ? 'Pause' : 'Start'}
         </button>
         <button className={styles.ctrlBtn} onClick={advance} title="Skip">⏭</button>
-        {onToggleSound && (
-          <>
-            <button
-              className={`${styles.ctrlBtn} ${styles.ctrlSound} ${soundPlaying ? styles.ctrlSoundOn : ''}`}
-              onClick={onToggleSound}
-              title={soundPlaying ? 'Stop ambient sound' : 'Play ambient sound'}
-            >
-              {soundPlaying && !soundMuted ? '🔔' : soundPlaying && soundMuted ? '🔇' : '🔕'}
-            </button>
-            {soundPlaying && (
-              <button className={`${styles.ctrlBtn} ${styles.ctrlSound}`} onClick={onToggleMute} title={soundMuted ? 'Unmute' : 'Mute'}>
-                {soundMuted ? 'unmute' : 'mute'}
-              </button>
-            )}
-          </>
-        )}
       </div>
 
       <div className={styles.footer}>
+        {onToggleSound && (
+          <button
+            className={`${styles.ctrlBtn} ${styles.ctrlSound} ${soundPlaying ? styles.ctrlSoundOn : ''}`}
+            onClick={onToggleSound}
+            title={soundPlaying ? 'Stop ambient sound' : 'Play ambient sound'}
+          >
+            {soundPlaying && !soundMuted ? '🔔' : soundPlaying && soundMuted ? '🔇' : '🔕'}
+          </button>
+        )}
+        {onToggleSound && soundPlaying && (
+          <button className={`${styles.ctrlBtn} ${styles.ctrlSound}`} onClick={onToggleMute} title={soundMuted ? 'Unmute' : 'Mute'}>
+            {soundMuted ? 'unmute' : 'mute'}
+          </button>
+        )}
         <div className={styles.pomodoros}>
           {Array.from({ length: Math.max(4, completedPomodoros + 1) }).map((_, i) => (
             <span key={i} className={`${styles.tomato} ${i < completedPomodoros ? styles.tomatoDone : ''}`}>🍅</span>
@@ -134,7 +132,7 @@ export default function PomodoroTimer({ roomId, soundPlaying, soundMuted, onTogg
         </div>
         <span className={styles.syncBadge}>
           <span className={styles.syncDot} />
-          Synced
+          <span className={styles.syncText}>Synced</span>
         </span>
       </div>
     </div>

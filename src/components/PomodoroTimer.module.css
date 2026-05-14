@@ -45,25 +45,39 @@
   display: flex; align-items: center; gap: 4px;
   font-size: 11px; color: var(--text-3); white-space: nowrap;
 }
+.syncText { font-size: 11px; }
 .syncDot {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--green); box-shadow: 0 0 4px var(--green);
   animation: pulse 2s infinite;
 }
 
-/* Compact layout when timer sits in the 220px sidebar column on desktop */
+/* ── Desktop compact: timer lives in a 220px sidebar column ── */
 @media (min-width: 901px) {
-  .wrap { flex-wrap: wrap; gap: 8px; }
-  .tabs { flex-wrap: wrap; gap: 2px; }
-  .tab { padding: 3px 8px; font-size: 11px; }
-  .ring svg { width: 48px; height: 48px; }
+  /* flex-wrap gives us explicit rows */
+  .wrap { flex-wrap: wrap; gap: 5px; padding: 8px 12px; }
+
+  /* Row 1 — phase tabs, each taking equal width */
+  .tabs { width: 100%; gap: 3px; }
+  .tab  { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; }
+
+  /* Row 2 — ring + timer controls */
+  .ring svg { width: 40px; height: 40px; }
   .time { font-size: 13px; }
-  .footer { margin-left: 0; }
+  .controls { gap: 3px; }
+  .ctrlBtn  { padding: 3px 7px; font-size: 12px; }
+  .ctrlMain { padding: 4px 8px; font-size: 12px; }
+
+  /* Row 3 — sound + tomatoes + sync; pushes to its own row via width:100% */
+  .footer { width: 100%; margin-left: 0; gap: 5px; }
+
+  /* Keep sync dot visible but hide the "Synced" label to save space */
+  .syncText { display: none; }
 }
 
-/* Mobile: move tabs onto their own full-width row so all 3 labels fit on one line */
+/* ── Mobile: full-width bar, tabs always on their own top row ── */
 @media (max-width: 900px) {
   .wrap { flex-wrap: wrap; gap: 6px 8px; padding: 6px 10px; }
   .tabs { width: 100%; order: -1; gap: 4px; }
-  .tab { flex: 1; text-align: center; font-size: 11px; padding: 4px 0; }
+  .tab  { flex: 1; text-align: center; font-size: 11px; padding: 4px 0; }
 }
