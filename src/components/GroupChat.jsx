@@ -19,42 +19,27 @@ function TrashIcon() {
 export default function GroupChat({ roomId, session, onOpenDm }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(true)
   const [showGate, setShowGate] = useState(false)
-  const [showFullAuth, setShowFullAuth] = useState(null) // 'signin' | 'signup' | null
+  const [showFullAuth, setShowFullAuth] = useState(null)
   const bottomRef = useRef(null)
-  const joinTimeRef = useRef(new Date().toISOString())
+  const channelRef = useRef(null)
+  const myIdRef = useRef(session?.user?.id)
+
+  useEffect(() => { myIdRef.current = session?.user?.id }, [session?.user?.id])
 
   const userName = session?.user?.email?.split('@')[0] || 'Guest'
 
   useEffect(() => {
-    supabase
-      .from('group_messages')
-      .select('*')
-      .eq('room_id', roomId)
-      .gt('created_at', joinTimeRef.current)
-      .order('created_at', { ascending: true })
-      .limit(100)
-      .then(({ data }) => {
-        if (data) setMessages(data)
-        setLoading(false)
-      })
-
+    setMessages([])
     const channel = supabase
-      .channel(`group_chat:${roomId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `room_id=eq.${roomId}` },
-        (payload) => {
-          setMessages(prev => {
-            if (prev.find(m => m.id === payload.new.id)) return prev
-            return [...prev, payload.new]
-          })
-        }
-      )
+      .channel(`group-chat-bc:${roomId}`)
+      .on('broadcast', { event: 'msg' }, ({ payload }) => {
+        if (payload.user_id === myIdRef.current) return
+        setMessages(prev => [...prev, payload])
+      })
       .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    channelRef.current = channel
+    return () => { supabase.removeChannel(channel); channelRef.current = null }
   }, [roomId])
 
   useEffect(() => {
@@ -68,29 +53,24 @@ export default function GroupChat({ roomId, session, onOpenDm }) {
 
   const send = async () => {
     const text = input.trim()
-    if (!text) return
+    if (!text || !channelRef.current) return
     setInput('')
 
-    const optimistic = {
-      id: `opt-${Date.now()}`,
-      room_id: roomId,
+    const msg = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       user_name: userName,
       user_id: session.user.id,
       text,
       created_at: new Date().toISOString(),
-      isOwn: true,
     }
-    setMessages(prev => [...prev, optimistic])
 
-    const { data, error } = await supabase
-      .from('group_messages')
-      .insert({ room_id: roomId, user_name: userName, user_id: session.user.id, text })
-      .select()
-      .single()
+    setMessages(prev => [...prev, { ...msg, isOwn: true }])
 
-    if (!error && data) {
-      setMessages(prev => prev.map(m => m.id === optimistic.id ? { ...data, isOwn: true } : m))
-    }
+    await channelRef.current.send({
+      type: 'broadcast',
+      event: 'msg',
+      payload: msg,
+    })
   }
 
   const handleKey = (e) => {
@@ -118,8 +98,7 @@ export default function GroupChat({ roomId, session, onOpenDm }) {
       </div>
 
       <div className={styles.messages}>
-        {loading && <p className={styles.loadingText}>Loading messages…</p>}
-        {!loading && messages.length === 0 && (
+        {messages.length === 0 && (
           <p className={styles.emptyText}>No messages yet. Say hello!</p>
         )}
         {messages.map(msg => {
@@ -195,7 +174,6 @@ export default function GroupChat({ roomId, session, onOpenDm }) {
           onAuth={() => setShowFullAuth(null)}
         />
       )}
-
     </div>
   )
 }

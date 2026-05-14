@@ -15,22 +15,17 @@ function fmtTime(ts) {
 export default function MessagesPanel({ session, isActive, initialConv, onClearInitialConv, onUnread, onSignIn }) {
   const [activeConv, setActiveConv] = useState(null)
   const [convs,      setConvs]      = useState([])
-  const [loading,    setLoading]    = useState(true)
 
-  // Refs so the realtime callback always reads current values without stale closure
-  const isActiveRef    = useRef(isActive)
-  const activeConvRef  = useRef(null)
-  const knownNamesRef  = useRef({})   // userId → displayName cache
+  const isActiveRef   = useRef(isActive)
+  const activeConvRef = useRef(null)
 
   useEffect(() => { isActiveRef.current = isActive }, [isActive])
   useEffect(() => { activeConvRef.current = activeConv }, [activeConv])
 
-  // When a name is clicked from sidebar/mobile sheet → open that conversation
+  // Open a conversation when triggered from the sidebar
   useEffect(() => {
     if (!initialConv) return
-    knownNamesRef.current[initialConv.userId] = initialConv.userName
     setActiveConv({ userId: initialConv.userId, userName: initialConv.userName })
-    // Ensure the conversation appears in the list even before history loads
     setConvs(prev =>
       prev.find(c => c.userId === initialConv.userId)
         ? prev
@@ -39,93 +34,34 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
     onClearInitialConv?.()
   }, [initialConv])
 
-  // Fetch full DM history once to build conversation list
-  useEffect(() => {
-    if (!session?.user?.id) { setLoading(false); return }
-    const userId = session.user.id
-
-    supabase
-      .from('direct_messages')
-      .select('*')
-      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-      .order('created_at', { ascending: false })
-      .limit(500)
-      .then(({ data, error }) => {
-        if (error) console.error('MessagesPanel load error:', error)
-        if (!data) { setLoading(false); return }
-
-        // Populate name cache from messages we received (sender_display_name is authoritative)
-        data.forEach(msg => {
-          if (msg.recipient_id === userId && !knownNamesRef.current[msg.sender_id]) {
-            knownNamesRef.current[msg.sender_id] = msg.sender_display_name
-          }
-        })
-
-        // Build conversation map — one entry per unique partner, most-recent message first
-        const convMap = {}
-        data.forEach(msg => {
-          const otherId   = msg.sender_id === userId ? msg.recipient_id : msg.sender_id
-          const otherName = msg.sender_id === userId
-            ? (knownNamesRef.current[msg.recipient_id] || 'Someone')
-            : msg.sender_display_name
-
-          if (!knownNamesRef.current[otherId]) knownNamesRef.current[otherId] = otherName
-
-          if (!convMap[otherId]) {
-            convMap[otherId] = { userId: otherId, userName: otherName, lastMsg: msg }
-          }
-        })
-
-        // Merge with any conversations already in state (e.g. opened from sidebar before load)
-        setConvs(prev => {
-          const fetched = Object.values(convMap).sort(
-            (a, b) => new Date(b.lastMsg?.created_at || 0) - new Date(a.lastMsg?.created_at || 0)
-          )
-          // Preserve entries that are in state but not yet in fetched (brand-new conversations)
-          const extra = prev.filter(c => !convMap[c.userId])
-          return [...extra, ...fetched]
-        })
-        setLoading(false)
-      })
-  }, [session?.user?.id])
-
-  // Realtime: incoming messages → update conv list + fire unread callback
+  // Subscribe to personal inbox broadcast channel for incoming DM notifications
   useEffect(() => {
     if (!session?.user?.id) return
-    const userId = session.user.id
+    const myId = session.user.id
 
-    const channel = supabase
-      .channel(`messages-panel:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `recipient_id=eq.${userId}` },
-        (payload) => {
-          const msg        = payload.new
-          const senderId   = msg.sender_id
-          const senderName = msg.sender_display_name
+    const ch = supabase
+      .channel(`dm-inbox:${myId}`)
+      .on('broadcast', { event: 'msg' }, ({ payload }) => {
+        const { senderId, senderName, content, created_at } = payload
 
-          knownNamesRef.current[senderId] = senderName
-
-          // Bubble conversation to top of list
-          setConvs(prev => {
-            const updated = { userId: senderId, userName: senderName, lastMsg: msg }
-            const rest    = prev.filter(c => c.userId !== senderId)
-            return [updated, ...rest]
-          })
-
-          // Only notify unread when Messages tab isn't active, or active but viewing a different thread
-          if (!isActiveRef.current || activeConvRef.current?.userId !== senderId) {
-            onUnread?.()
+        setConvs(prev => {
+          const existing = prev.find(c => c.userId === senderId)
+          const updated  = { userId: senderId, userName: senderName, lastMsg: { content, created_at } }
+          if (existing) {
+            return [updated, ...prev.filter(c => c.userId !== senderId)]
           }
+          return [updated, ...prev]
+        })
+
+        if (!isActiveRef.current || activeConvRef.current?.userId !== senderId) {
+          onUnread?.()
         }
-      )
+      })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => supabase.removeChannel(ch)
   }, [session?.user?.id])
 
-  // --- Guest state ---
   if (!session) {
     return (
       <div className={styles.guestWrap}>
@@ -151,8 +87,7 @@ export default function MessagesPanel({ session, isActive, initialConv, onClearI
         />
       ) : (
         <>
-          {loading && <p className={styles.state}>Loading…</p>}
-          {!loading && convs.length === 0 && (
+          {convs.length === 0 && (
             <p className={styles.empty}>
               No messages yet — click someone's name in the sidebar to start a conversation.
             </p>

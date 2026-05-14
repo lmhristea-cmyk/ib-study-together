@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import styles from './DmThread.module.css'
 
@@ -14,76 +14,34 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
 
   const [messages, setMessages] = useState([])
   const [input,    setInput]    = useState('')
-  const [loading,  setLoading]  = useState(true)
-  const bottomRef = useRef(null)
+  const bottomRef      = useRef(null)
+  const threadChRef    = useRef(null)
+  const inboxChRef     = useRef(null)
 
+  const pairId = useMemo(() => [fromUserId, toUserId].sort().join(':'), [fromUserId, toUserId])
+
+  // Thread channel — receives messages from the other user in this conversation
   useEffect(() => {
     setMessages([])
-    setLoading(true)
 
-    supabase
-      .from('direct_messages')
-      .select('*')
-      .or(
-        `and(sender_id.eq.${fromUserId},recipient_id.eq.${toUserId}),` +
-        `and(sender_id.eq.${toUserId},recipient_id.eq.${fromUserId})`
-      )
-      .order('created_at', { ascending: true })
-      .limit(100)
-      .then(({ data, error }) => {
-        if (error) console.error('DmThread history error:', error)
-        if (data) setMessages(data)
-        setLoading(false)
+    const thread = supabase
+      .channel(`dm:${pairId}`)
+      .on('broadcast', { event: 'msg' }, ({ payload }) => {
+        if (payload.senderId === fromUserId) return
+        setMessages(prev => [...prev, payload])
       })
-
-    const addMessage = (msg) => {
-      setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
-    }
-
-    // Incoming: filter by sender to avoid conflict with MessagesPanel subscription
-    const incoming = supabase
-      .channel(`dm2-in:${fromUserId}:${toUserId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `sender_id=eq.${toUserId}` },
-        (payload) => {
-          if (payload.new.recipient_id !== fromUserId) return
-          addMessage(payload.new)
-        }
-      )
       .subscribe()
+    threadChRef.current = thread
 
-    // Outgoing: my messages confirmed by DB (replaces optimistic entry)
-    const outgoing = supabase
-      .channel(`dm2-out:${fromUserId}:${toUserId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'direct_messages',
-          filter: `sender_id=eq.${fromUserId}` },
-        (payload) => {
-          if (payload.new.recipient_id !== toUserId) return
-          setMessages(prev => {
-            if (prev.find(m => m.id === payload.new.id)) return prev
-            const optIdx = prev.findIndex(
-              m => m.id.startsWith('opt-') && m.content === payload.new.content
-            )
-            if (optIdx !== -1) {
-              const next = [...prev]
-              next[optIdx] = payload.new
-              return next
-            }
-            return [...prev, payload.new]
-          })
-        }
-      )
-      .subscribe()
+    return () => { supabase.removeChannel(thread); threadChRef.current = null }
+  }, [pairId, fromUserId])
 
-    return () => {
-      supabase.removeChannel(incoming)
-      supabase.removeChannel(outgoing)
-    }
-  }, [fromUserId, toUserId])
+  // Inbox channel — subscribed so we can broadcast notifications to the recipient's MessagesPanel
+  useEffect(() => {
+    const inbox = supabase.channel(`dm-inbox:${toUserId}`).subscribe()
+    inboxChRef.current = inbox
+    return () => { supabase.removeChannel(inbox); inboxChRef.current = null }
+  }, [toUserId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -91,26 +49,33 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
 
   const send = async () => {
     const text = input.trim()
-    if (!text) return
+    if (!text || !threadChRef.current) return
     setInput('')
 
-    const optimistic = {
+    const msg = {
       id: `opt-${Date.now()}`,
-      sender_id: fromUserId,
-      recipient_id: toUserId,
-      sender_display_name: fromUserName,
+      senderId: fromUserId,
+      senderName: fromUserName,
+      recipientId: toUserId,
       content: text,
       created_at: new Date().toISOString(),
     }
-    setMessages(prev => [...prev, optimistic])
 
-    const { error } = await supabase
-      .from('direct_messages')
-      .insert({ sender_id: fromUserId, recipient_id: toUserId, sender_display_name: fromUserName, content: text })
+    setMessages(prev => [...prev, msg])
 
-    if (error) {
-      console.error('DmThread send error:', error)
-      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+    await threadChRef.current.send({
+      type: 'broadcast',
+      event: 'msg',
+      payload: msg,
+    })
+
+    // Notify recipient's MessagesPanel so it can show unread dot + update conv list
+    if (inboxChRef.current) {
+      await inboxChRef.current.send({
+        type: 'broadcast',
+        event: 'msg',
+        payload: { senderId: fromUserId, senderName: fromUserName, content: text, created_at: msg.created_at },
+      })
     }
   }
 
@@ -127,12 +92,11 @@ export default function DmThread({ session, toUserId, toUserName, onBack }) {
       </div>
 
       <div className={styles.messages}>
-        {loading && <p className={styles.stateText}>Loading…</p>}
-        {!loading && messages.length === 0 && (
+        {messages.length === 0 && (
           <p className={styles.stateText}>No messages yet. Say hello!</p>
         )}
         {messages.map(msg => {
-          const isMe = msg.sender_id === fromUserId
+          const isMe = msg.senderId === fromUserId
           return (
             <div key={msg.id} className={`${styles.row} ${isMe ? styles.rowMe : styles.rowThem}`}>
               {!isMe && <span className={styles.avatar}>{toUserName.charAt(0).toUpperCase()}</span>}
