@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import styles from './Home.module.css'
 
 const FEATURES = [
-  { icon: '📚', title: 'Virtual Study Rooms', desc: 'Subject-specific rooms with a 10-person cap and lobby queue system. See who\'s studying right now.' },
+  { icon: '📚', title: 'Virtual Study Rooms', desc: 'Subject-specific rooms for every IB subject. See who\'s studying right now and collaborate in real time.' },
   { icon: '🎵', title: 'Focus Music', desc: 'Play ambient Tibetan bowl sounds to stay calm and focused during your study session.' },
   { icon: '⏱️', title: 'Synced Pomodoro Timer', desc: 'Stay in sync with your room. Everyone works and breaks together.' },
   { icon: '🤖', title: 'AI Tutor (Powered by Claude)', desc: 'Ask any IB question and get expert, curriculum-aligned answers instantly.' },

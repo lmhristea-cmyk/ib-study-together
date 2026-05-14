@@ -5,7 +5,6 @@ import Rooms from './pages/Rooms'
 import Room from './pages/Room'
 import Resources from './pages/Resources'
 import IBTools from './pages/IBTools'
-import LobbyScreen from './components/LobbyScreen'
 import ResetPassword from './pages/ResetPassword'
 import { supabase } from './supabaseClient'
 
@@ -14,7 +13,6 @@ export default function App() {
     window.location.pathname === '/reset-password' ? 'resetPassword' : 'home'
   )
   const [currentRoom, setCurrentRoom] = useState(null)
-  const [lobbyRoom, setLobbyRoom] = useState(null)
   const [session, setSession] = useState(null)
 
   useEffect(() => {
@@ -28,7 +26,6 @@ export default function App() {
 
   const navigate = (to, data = null) => {
     if (to === 'room' && data) setCurrentRoom(data)
-    if (to === 'lobby' && data) setLobbyRoom(data)
     setPage(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -42,7 +39,6 @@ export default function App() {
         {page === 'resources' && <Resources />}
         {page === 'tools' && <IBTools />}
         {page === 'room' && currentRoom && <Room room={currentRoom} navigate={navigate} session={session} />}
-        {page === 'lobby' && lobbyRoom && <LobbyScreen room={lobbyRoom} navigate={navigate} />}
         {page === 'resetPassword' && <ResetPassword navigate={navigate} />}
       </main>
     </div>
