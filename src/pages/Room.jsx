@@ -112,7 +112,18 @@ export default function Room({ room, navigate, session }) {
           })
         }
       })
-    return () => { supabase.removeChannel(channel) }
+    // Also track in a lightweight global channel so the landing page can count online users
+    const globalChannel = supabase.channel('global-online')
+    globalChannel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await globalChannel.track({ key: presenceKeyRef.current })
+      }
+    })
+
+    return () => {
+      supabase.removeChannel(channel)
+      supabase.removeChannel(globalChannel)
+    }
   }, [room.id, session?.user?.id])
 
   // Ambient sound

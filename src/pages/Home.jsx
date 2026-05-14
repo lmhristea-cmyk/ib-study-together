@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
+import heroImg from '../assets/hero.png'
 import styles from './Home.module.css'
 
 const FEATURES = [
@@ -8,13 +11,28 @@ const FEATURES = [
   { icon: '📖', title: 'Free IB Ebooks', desc: 'Download free study ebooks for IB subjects. Curriculum-aligned, exam-focused, and written for students.' },
 ]
 
-const STATS = [
-  { value: '36', label: 'Study Rooms' },
-  { value: '20', label: 'IB Subjects' },
-  { value: '24/7', label: 'Always Online' },
-]
-
 export default function Home({ navigate }) {
+  const [onlineCount, setOnlineCount] = useState(null)
+
+  useEffect(() => {
+    const ch = supabase.channel('global-online')
+      .on('presence', { event: 'sync' }, () => {
+        setOnlineCount(Object.keys(ch.presenceState()).length)
+      })
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [])
+
+  const thirdStat = onlineCount > 0
+    ? { value: String(onlineCount), label: 'Students Online Now', live: true }
+    : { value: '24/7', label: 'Always Online', live: false }
+
+  const STATS = [
+    { value: '36', label: 'Study Rooms' },
+    { value: '20', label: 'IB Subjects' },
+    thirdStat,
+  ]
+
   return (
     <div className={styles.page}>
       {/* Hero */}
@@ -36,6 +54,19 @@ export default function Home({ navigate }) {
             </button>
           </div>
         </div>
+
+        {/* App screenshot mockup */}
+        <div className={styles.mockupWrap}>
+          <div className={styles.mockupChrome}>
+            <div className={styles.mockupDots}>
+              <span className={styles.mockupDot} style={{ background: '#FF5F57' }} />
+              <span className={styles.mockupDot} style={{ background: '#FFBD2E' }} />
+              <span className={styles.mockupDot} style={{ background: '#28CA41' }} />
+            </div>
+            <div className={styles.mockupUrlBar}>ibstudytogether.com/room</div>
+          </div>
+          <img src={heroImg} alt="IB Study Together study room" className={styles.mockupImg} />
+        </div>
       </section>
 
       {/* Sustainability */}
@@ -55,7 +86,10 @@ export default function Home({ navigate }) {
       <section className={styles.stats}>
         {STATS.map((s, i) => (
           <div key={i} className={styles.stat}>
-            <span className={styles.statValue}>{s.value}</span>
+            <span className={styles.statValue}>
+              {s.live && <span className={styles.liveDot} />}
+              {s.value}
+            </span>
             <span className={styles.statLabel}>{s.label}</span>
           </div>
         ))}
