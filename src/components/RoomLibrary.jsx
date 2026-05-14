@@ -9,6 +9,62 @@ function TrashIcon() {
   )
 }
 
+function ExportIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  )
+}
+
+function exportAsPDF(item) {
+  function escHtml(t) {
+    return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+  function fmtContent(t) {
+    return escHtml(t)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^---+$/gm, '<hr>')
+      .replace(/^#{3}\s+(.+)/gm, '<h3>$1</h3>')
+      .replace(/^#{2}\s+(.+)/gm, '<h2>$1</h2>')
+      .replace(/^#\s+(.+)/gm, '<h1>$1</h1>')
+      .replace(/^[-*]\s+(.+)/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      .replace(/\n/g, '<br>')
+  }
+  const dateStr = new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+  const win = window.open('', '_blank')
+  win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+  <title>${escHtml(item.subject || 'Room Library')} — Library Note</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#111827;padding:40px;max-width:700px;margin:0 auto;font-size:13px;line-height:1.65}
+    .header{border-bottom:2px solid #111827;padding-bottom:16px;margin-bottom:28px}
+    .badge{display:inline-block;background:#7C3AED;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;letter-spacing:.05em;margin-bottom:10px}
+    h1.title{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+    .meta{font-size:11px;color:#6B7280}
+    .content{background:#F9FAFB;border:1px solid #E5E7EB;border-left:3px solid #7C3AED;padding:16px 20px;border-radius:8px;line-height:1.7}
+    strong{font-weight:700;color:#111827} em{font-style:italic}
+    code{background:#F3F4F6;border:1px solid #E5E7EB;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px}
+    h1,h2,h3{margin:12px 0 6px;font-weight:700;color:#111827} h1{font-size:17px} h2{font-size:15px} h3{font-size:14px}
+    ul{margin:6px 0 6px 20px} li{margin:2px 0} hr{border:none;border-top:1px solid #E5E7EB;margin:10px 0}
+    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #E5E7EB;font-size:11px;color:#9CA3AF;display:flex;justify-content:space-between}
+    @media print{body{padding:24px}.content{page-break-inside:avoid}}
+  </style></head><body>
+  <div class="header">
+    <div class="badge">ROOM LIBRARY</div>
+    <h1 class="title">${escHtml(item.title)}</h1>
+    <div class="meta">Shared by ${escHtml(item.user_display_name)} · ${dateStr} · IB Study Together</div>
+  </div>
+  ${item.content ? `<div class="content">${fmtContent(item.content)}</div>` : ''}
+  <div class="footer"><span>IB Study Together · Room Library</span><span>${dateStr}</span></div>
+  <script>window.onload=function(){window.print()}</script>
+  </body></html>`)
+  win.document.close()
+}
+
 function fmtDate(ts) {
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -76,6 +132,11 @@ function RoomLibraryCard({ item, currentUserId, onDelete }) {
               {expanded ? 'Show less ↑' : 'Show more ↓'}
             </button>
           )}
+          <div className={styles.cardActions}>
+            <button className={styles.exportBtn} onClick={() => exportAsPDF(item)}>
+              <ExportIcon /> Export PDF
+            </button>
+          </div>
         </>
       )}
     </div>
