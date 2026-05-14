@@ -34,7 +34,7 @@
 .bubble {
   max-width: 85%; padding: 10px 14px; border-radius: 14px;
   background: var(--bg-2); border: 1px solid var(--border);
-  font-size: 14px; line-height: 1.6;
+  font-size: 14px; line-height: 1.6; overflow: visible;
 }
 .user .bubble {
   border-radius: 14px 4px 14px 14px;

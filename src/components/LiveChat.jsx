@@ -495,11 +495,8 @@ function PaperclipIcon() {
 
 function MessageContent({ content }) {
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      className={styles.markdown}
-    >
-      {content}
-    </ReactMarkdown>
+    <div className={styles.markdown}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    </div>
   )
 }
