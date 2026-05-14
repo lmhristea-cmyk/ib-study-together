@@ -21,6 +21,12 @@ export default function Navbar({ page, navigate, session, onSignOut }) {
           >
             Resources
           </button>
+          <button
+            className={`${styles.link} ${page === 'tools' ? styles.active : ''}`}
+            onClick={() => navigate('tools')}
+          >
+            IB Tools
+          </button>
         </div>
         <div className={styles.authArea}>
           {session ? (

@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Rooms from './pages/Rooms'
 import Room from './pages/Room'
 import Resources from './pages/Resources'
+import IBTools from './pages/IBTools'
 import LobbyScreen from './components/LobbyScreen'
 import ResetPassword from './pages/ResetPassword'
 import { supabase } from './supabaseClient'
@@ -39,6 +40,7 @@ export default function App() {
         {page === 'home' && <Home navigate={navigate} />}
         {page === 'rooms' && <Rooms navigate={navigate} />}
         {page === 'resources' && <Resources />}
+        {page === 'tools' && <IBTools />}
         {page === 'room' && currentRoom && <Room room={currentRoom} navigate={navigate} session={session} />}
         {page === 'lobby' && lobbyRoom && <LobbyScreen room={lobbyRoom} navigate={navigate} />}
         {page === 'resetPassword' && <ResetPassword navigate={navigate} />}
