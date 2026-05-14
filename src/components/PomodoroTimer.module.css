@@ -48,3 +48,13 @@
   background: var(--green); box-shadow: 0 0 4px var(--green);
   animation: pulse 2s infinite;
 }
+
+/* Compact layout when timer sits in the 220px sidebar column on desktop */
+@media (min-width: 901px) {
+  .wrap { flex-wrap: wrap; gap: 8px; }
+  .tabs { flex-wrap: wrap; gap: 2px; }
+  .tab { padding: 3px 8px; font-size: 11px; }
+  .ring svg { width: 48px; height: 48px; }
+  .time { font-size: 13px; }
+  .footer { margin-left: 0; }
+}
