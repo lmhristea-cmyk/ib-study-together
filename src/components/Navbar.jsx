@@ -15,6 +15,12 @@ export default function Navbar({ page, navigate, session, onSignOut }) {
           >
             Study Rooms
           </button>
+          <button
+            className={`${styles.link} ${page === 'resources' ? styles.active : ''}`}
+            onClick={() => navigate('resources')}
+          >
+            Resources
+          </button>
         </div>
         <div className={styles.authArea}>
           {session ? (

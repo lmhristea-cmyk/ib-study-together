@@ -8,7 +8,6 @@ import MessagesPanel from '../components/MessagesPanel'
 import { supabase } from '../supabaseClient'
 import AuthPromptModal from '../components/AuthPromptModal'
 import AuthModal from '../components/AuthModal'
-import IBResources from '../components/IBResources'
 import styles from './Room.module.css'
 
 const libraryKey = (roomId) => `ib-library-${roomId}`
@@ -286,10 +285,6 @@ export default function Room({ room, navigate, session }) {
                 className={`${styles.panelTab} ${rightPanel === 'ebooks' ? styles.panelTabActive : ''}`}
                 onClick={() => setRightPanel('ebooks')}
               >Ebooks</button>
-              <button
-                className={`${styles.panelTab} ${rightPanel === 'resources' ? styles.panelTabActive : ''}`}
-                onClick={() => setRightPanel('resources')}
-              >Resources</button>
             </div>
             <div className={styles.panelBody}>
               <div className={rightPanel === 'ai' ? styles.panelVisible : styles.panelHidden}>
@@ -321,9 +316,6 @@ export default function Room({ room, navigate, session }) {
               </div>
               <div className={rightPanel === 'library' ? styles.panelVisible : styles.panelHidden}>
                 <Library items={library} onDelete={deleteFromLibrary} onUpload={uploadToLibrary} roomId={room.id} session={session} />
-              </div>
-              <div className={rightPanel === 'resources' ? styles.panelVisible : styles.panelHidden}>
-                <IBResources subject={room.subject} />
               </div>
               <div className={rightPanel === 'ebooks' ? styles.panelVisible : styles.panelHidden}>
                 <div className={styles.ebooksEmpty}>
