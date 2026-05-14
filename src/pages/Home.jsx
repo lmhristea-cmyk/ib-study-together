@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import heroImg from '../assets/hero.png'
 import styles from './Home.module.css'
 
 const FEATURES = [
@@ -65,7 +64,7 @@ export default function Home({ navigate }) {
             </div>
             <div className={styles.mockupUrlBar}>ibstudytogether.com/room</div>
           </div>
-          <img src={heroImg} alt="IB Study Together study room" className={styles.mockupImg} />
+          <img src="/app-screenshot.svg" alt="IB Study Together study room" className={styles.mockupImg} />
         </div>
       </section>
 
