@@ -1,11 +1,11 @@
 import styles from './Home.module.css'
 
 const FEATURES = [
-  { title: 'Virtual Study Rooms', desc: 'Subject-specific rooms with a 10-person cap and lobby queue system. See who\'s studying right now.' },
-  { title: 'Focus Music', desc: 'Play ambient Tibetan bowl sounds to stay calm and focused during your study session.' },
-  { title: 'Synced Pomodoro Timer', desc: 'Stay in sync with your room. Everyone works and breaks together.' },
-  { title: 'AI Tutor (Powered by Claude)', desc: 'Ask any IB question and get expert, curriculum-aligned answers instantly.' },
-  { title: 'Free IB Ebooks', desc: 'Download free study ebooks for IB subjects. Curriculum-aligned, exam-focused, and written for students.' },
+  { icon: '📚', title: 'Virtual Study Rooms', desc: 'Subject-specific rooms with a 10-person cap and lobby queue system. See who\'s studying right now.' },
+  { icon: '🎵', title: 'Focus Music', desc: 'Play ambient Tibetan bowl sounds to stay calm and focused during your study session.' },
+  { icon: '⏱️', title: 'Synced Pomodoro Timer', desc: 'Stay in sync with your room. Everyone works and breaks together.' },
+  { icon: '🤖', title: 'AI Tutor (Powered by Claude)', desc: 'Ask any IB question and get expert, curriculum-aligned answers instantly.' },
+  { icon: '📖', title: 'Free IB Ebooks', desc: 'Download free study ebooks for IB subjects. Curriculum-aligned, exam-focused, and written for students.' },
 ]
 
 const STATS = [
@@ -70,6 +70,7 @@ export default function Home({ navigate }) {
         <div className={styles.featureGrid}>
           {FEATURES.map((f, i) => (
             <div key={i} className={styles.featureCard}>
+              <span className={styles.featureIcon}>{f.icon}</span>
               <h3 className={styles.featureTitle}>{f.title}</h3>
               <p className={styles.featureDesc}>{f.desc}</p>
             </div>

@@ -99,6 +99,7 @@
   transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
 }
 .featureCard:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: #9CA3AF; }
+.featureIcon { font-size: 28px; display: block; margin-bottom: 12px; }
 .featureTitle { font-size: 17px; font-weight: 700; color: #111827; margin-bottom: 8px; }
 .featureDesc { font-size: 14px; color: #6B7280; line-height: 1.6; }
 
