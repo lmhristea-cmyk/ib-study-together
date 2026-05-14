@@ -361,8 +361,8 @@ export default function LiveChat({ subject, subjectColor, onSave, savedIds = new
         <div ref={bottomRef} />
       </div>
 
-      {/* Upload nudge — shown after topic-triggered questions */}
-      {showUploadNudge && (
+      {/* Upload nudge — shown only after the AI has generated a topic practice question */}
+      {showUploadNudge && messages.length > 1 && (
         <div className={styles.uploadNudge}>
           <span className={styles.nudgeIcon}>📎</span>
           <div className={styles.nudgeText}>
